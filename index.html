@@ -24,7 +24,6 @@
   .stage{ position:relative; width:100%; display:flex; justify-content:center }
   .tag{ position:absolute; top:-26px; left:8px; font-size:12px; background:#fff; border:1.5px solid var(--gold);
         color:var(--black); padding:4px 10px; border-radius:999px; box-shadow:0 2px 8px rgba(0,0,0,.06) }
-  /* Responsive SVG: scales to phone width, but keeps 640x720 internal coords */
   svg.board{
     background:var(--beige); border-radius:18px; box-shadow:0 10px 24px rgba(0,0,0,.12);
     width:min(92vw, 680px); height:auto;
@@ -54,12 +53,11 @@
 
     <div class="stage">
       <div class="tag noselect" id="round-tag">Round 1</div>
-      <!-- Fixed logical coords; visual size is controlled by CSS above -->
       <svg id="svg" class="board" width="640" height="720" viewBox="0 0 640 720" preserveAspectRatio="xMidYMid meet"></svg>
     </div>
 
     <p class="note">Drag the <b>hook</b> with your finger to highlight a stitch, or just <b>tap</b> near one.
-      Lift your finger to select. Finishing all “V” stitches advances the round.</p>
+      Lift your finger (or dwell briefly) to select. Finishing all “V” stitches advances the round.</p>
   </div>
 
   <div id="overlay" class="overlay">
@@ -90,6 +88,7 @@
 
   let running=false, round=1, stitches=[], ringR=160;
   let hoverId=null, pointerPos=null, isPointerDown=false;
+  let dwellTimer=null, lastDownHover=null;
 
   const counts=[0,12,18,24,30,36];
   const toRad=d=>d*Math.PI/180;
@@ -236,36 +235,50 @@
     pointerPos={x:mx,y:my};
     const snap = (window.innerWidth<480)? 56 : 38;   // larger highlight zone on phones
     const {best, within} = nearestStitch(mx,my,snap);
-    hoverId = within && best ? best.id : (best ? best.id : null); // still point to best for visual feedback
+    hoverId = within && best ? best.id : (best ? best.id : null);
     draw();
   }
 
-  // ---------- selection helper (robust for iframes/Canva) ----------
+  // ---------- selection helper ----------
   function selectAtScreenEvent(ev) {
-    const p = svgPointFromEvent(ev);
-    const snap = (window.innerWidth < 480) ? 64 : 46;
-    // Prefer the highlighted stitch if any
+    if (!running) return;
+    // Prefer the current highlight if present
     if (hoverId != null) {
       const s1 = stitches.find(st => st.id === hoverId);
       if (s1) { selectStitch(s1); return; }
     }
-    // Else choose nearest to event point
+    const p = svgPointFromEvent(ev);
+    const snap = (window.innerWidth < 480) ? 64 : 46;
     const { best } = nearestStitch(p.x, p.y, snap);
     if (best) { selectStitch(best); return; }
-    // Fallback to last known pointer position
     if (pointerPos) {
       const { best: best2 } = nearestStitch(pointerPos.x, pointerPos.y, snap);
       if (best2) selectStitch(best2);
     }
   }
 
-  // ---------- pointer events (mouse + touch) ----------
+  // ---------- dwell-to-select (works if pointerup is swallowed) ----------
+  function startDwell(){
+    clearTimeout(dwellTimer);
+    lastDownHover = hoverId;
+    dwellTimer = setTimeout(()=>{
+      if (isPointerDown && running) {
+        // If still pressed and still over same stitch, select it
+        const s = (lastDownHover!=null) ? stitches.find(st=>st.id===lastDownHover) : null;
+        if (s && !s.clicked) selectStitch(s);
+      }
+    }, 180); // ~a quick press-and-hold
+  }
+  function cancelDwell(){ clearTimeout(dwellTimer); dwellTimer=null; }
+
+  // ---------- pointer events ----------
   svg.addEventListener('pointerdown',(ev)=>{
     if(ev.isPrimary===false) return;
     isPointerDown=true;
     try { svg.setPointerCapture(ev.pointerId); } catch(_) {}
     const p=svgPointFromEvent(ev);
     updateHover(p.x,p.y);
+    startDwell();
     ev.preventDefault();
   },{passive:false});
 
@@ -273,31 +286,29 @@
     if(ev.isPrimary===false) return;
     const p=svgPointFromEvent(ev);
     updateHover(p.x,p.y);
+    if(isPointerDown) startDwell(); // restart dwell when moving, so hold-over selects
     if(isPointerDown) ev.preventDefault();
   },{passive:false});
 
   svg.addEventListener('pointerup',(ev)=>{
     if(ev.isPrimary===false) return;
     isPointerDown=false;
+    cancelDwell();
     try { svg.releasePointerCapture(ev.pointerId); } catch(_) {}
-    selectAtScreenEvent(ev);   // <— select on lift
+    selectAtScreenEvent(ev);
     ev.preventDefault();
   },{passive:false});
 
   svg.addEventListener('pointerleave',()=>{
-    pointerPos=null; hoverId=null; draw();
+    pointerPos=null; hoverId=null; cancelDwell(); draw();
   });
 
-  // Also select on click/tap (extra safety)
-  svg.addEventListener('click', (ev) => {
-    selectAtScreenEvent(ev);
-  });
+  // Extra safety: click/tap
+  svg.addEventListener('click', (ev) => { selectAtScreenEvent(ev); });
 
-  // Global pointerup: if Canva/iframe swallows the up, we still finalize selection
-  window.addEventListener('pointerup', (ev) => {
-    if (!running) return;
-    selectAtScreenEvent(ev);
-  }, { passive: false });
+  // Extra-extra safety: global pointerup (for iframe swallowing)
+  window.addEventListener('pointerup', (ev) => { selectAtScreenEvent(ev); }, { passive:false });
+  document.addEventListener('pointerup', (ev) => { selectAtScreenEvent(ev); }, { passive:false });
 
   // ---------- UI ----------
   startBtn.addEventListener('click',()=>{ if(!running) start(); });
