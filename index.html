@@ -46,6 +46,7 @@
   }
   svg.board{
     background:var(--beige);border-radius:18px;box-shadow:0 10px 24px rgba(0,0,0,.12);
+    /* IMPORTANT for touch: allows us to capture drag without scrolling */
     touch-action:none;
   }
 
@@ -61,6 +62,11 @@
   .spark line{opacity:0}
   @keyframes fadeIn{to{opacity:1}}
   .noselect{-webkit-user-select:none;user-select:none}
+
+  /* Small screens: tighten the frame a bit */
+  @media (max-width: 480px){
+    h1 { font-size: 22px; }
+  }
 </style>
 </head>
 <body>
@@ -76,10 +82,11 @@
 
     <div class="stage">
       <div class="tag noselect" id="round-tag">Round 1</div>
-      <svg id="svg" class="board" width="640" height="720"></svg>
+      <!-- For small phones we scale the board down a bit with viewBox -->
+      <svg id="svg" class="board" width="640" height="720" viewBox="0 0 640 720" preserveAspectRatio="xMidYMid meet"></svg>
     </div>
 
-    <p class="note">Move the <b>hook</b> over a stitch to highlight it, then click to select. Finish each round to grow the circle. After Round 5, a celebratory message pops up.</p>
+    <p class="note">Drag the <b>hook</b> with your finger to hover a stitch, then lift your finger to select. Finish each round to grow the circle. After Round 5, a celebratory message pops up.</p>
   </div>
 
   <div id="overlay" class="overlay">
@@ -116,8 +123,11 @@
   let round = 1;
   let stitches = [];
   let ringR = 160;
+
+  // Pointer/hover state
   let hoverId = null;
-  let mouse = null;
+  let pointerPos = null;      // {x, y} in SVG coords
+  let isPointerDown = false;  // so we only "select" on lift for touch
 
   const counts = [0,12,18,24,30,36];
   function radiusForRound(r){ return 130 + r*8; }
@@ -164,6 +174,7 @@
 
   function draw(){
     while(svg.firstChild) svg.removeChild(svg.firstChild);
+    // rings
     svg.appendChild(circle(cx,cy, ringR+70, 'none', GOLD, 2));
     const inner = circle(cx,cy, ringR-70, 'none', '#f3f4f6', 2);
     inner.setAttribute('stroke-dasharray','3 8'); svg.appendChild(inner);
@@ -190,23 +201,23 @@
       if(isHover) path.style.filter = `drop-shadow(0 0 6px ${GOLD})`;
       g.appendChild(path);
 
-      g.addEventListener('click', ()=>{
-        if(!running || s.clicked) return;
-        s.clicked = true;
-        if(s.kind==='real'){ sparkle(base.x, base.y-18); }
-        checkEnd(); draw();
-      });
+      // Legacy mouse click (desktop)
+      g.addEventListener('click', ()=>selectStitch(s));
 
       svg.appendChild(g);
     }
 
-    if(mouse){
+    // Crochet hook image follows pointer/touch
+    if(pointerPos){
       const img = document.createElementNS('http://www.w3.org/2000/svg','image');
       img.setAttributeNS('http://www.w3.org/1999/xlink','href','https://athriftynotion.com/cdn/shop/files/SizeNCrochetHook_800x.png?v=1753294266');
-      img.setAttribute('x', mouse.x - 40);
-      img.setAttribute('y', mouse.y - 40);
-      img.setAttribute('width', 100);
-      img.setAttribute('height', 100);
+      // slightly bigger on small devices
+      const hookW = window.innerWidth < 420 ? 110 : 100;
+      const hookH = hookW;
+      img.setAttribute('x', pointerPos.x - 40);
+      img.setAttribute('y', pointerPos.y - 40);
+      img.setAttribute('width', hookW);
+      img.setAttribute('height', hookH);
       img.setAttribute('pointer-events','none');
       svg.appendChild(img);
     }
@@ -258,27 +269,82 @@
     }
   }
 
-  svg.addEventListener('mousemove', (e)=>{
+  function selectStitch(s){
+    if(!running || s.clicked) return;
+    s.clicked = true;
+    if(s.kind==='real'){
+      const base = pointOnRingDeg(s.angle, ringR);
+      sparkle(base.x, base.y - 18);
+    }
+    checkEnd(); draw();
+  }
+
+  // ---------- Pointer Events (mouse + touch) ----------
+  function svgPointFromEvent(ev){
     const rect = svg.getBoundingClientRect();
-    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
-    mouse = {x:mx, y:my};
-    const SNAP2 = 28*28;
+    // account for viewBox scaling
+    const scaleX = svg.viewBox.baseVal.width ? (svg.viewBox.baseVal.width / rect.width) : 1;
+    const scaleY = svg.viewBox.baseVal.height ? (svg.viewBox.baseVal.height / rect.height) : 1;
+    const x = (ev.clientX - rect.left) * scaleX;
+    const y = (ev.clientY - rect.top) * scaleY;
+    return {x,y};
+  }
+
+  function updateHover(mx,my){
+    pointerPos = {x:mx, y:my};
+    const SNAP2 = (window.innerWidth < 420 ? 34 : 28) ** 2; // larger snap on phones
     let bestId=null, bestD2=Infinity;
     for(const s of stitches){
       const base = pointOnRingDeg(s.angle, ringR);
       const d2 = dist2(mx,my, base.x, base.y);
       if(d2<bestD2 && d2<SNAP2){ bestD2 = d2; bestId = s.id; }
     }
-    hoverId = bestId; draw();
-  });
-  svg.addEventListener('mouseleave', ()=>{ mouse=null; hoverId=null; draw(); });
+    hoverId = bestId;
+    draw();
+  }
 
+  svg.addEventListener('pointerdown', (ev)=>{
+    // Only track primary pointer (finger or mouse button)
+    if(ev.isPrimary === false) return;
+    isPointerDown = true;
+    const p = svgPointFromEvent(ev);
+    updateHover(p.x, p.y);
+    // prevent page scroll/zoom during drag on touch
+    ev.preventDefault();
+  }, {passive:false});
+
+  svg.addEventListener('pointermove', (ev)=>{
+    if(ev.isPrimary === false) return;
+    const p = svgPointFromEvent(ev);
+    updateHover(p.x, p.y);
+    if(isPointerDown) ev.preventDefault();
+  }, {passive:false});
+
+  svg.addEventListener('pointerup', (ev)=>{
+    if(ev.isPrimary === false) return;
+    isPointerDown = false;
+    // On lift: if we’re over a stitch, select it (touch-friendly)
+    if(hoverId != null){
+      const s = stitches.find(st=>st.id===hoverId);
+      if(s) selectStitch(s);
+    }
+    ev.preventDefault();
+  }, {passive:false});
+
+  svg.addEventListener('pointerleave', ()=>{
+    pointerPos = null;
+    hoverId = null;
+    draw();
+  });
+
+  // ---------- UI buttons ----------
   startBtn.addEventListener('click', ()=>{ if(running) return; start(); });
   pauseBtn.addEventListener('click', ()=>{ pause(); });
 
-  closeBtn.addEventListener('click', ()=> overlay.classList.remove('show'));
-  againBtn.addEventListener('click', ()=>{ overlay.classList.remove('show'); start(); });
+  document.getElementById('btn-close').addEventListener('click', ()=> overlay.classList.remove('show'));
+  document.getElementById('btn-again').addEventListener('click', ()=>{ overlay.classList.remove('show'); start(); });
 
+  // init
   genRound(1); running=false; startBtn.style.display='inline-block'; pauseBtn.style.display='none';
 })();
 </script>
