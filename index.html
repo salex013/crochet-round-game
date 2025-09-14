@@ -5,9 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
 <title>Crochet Round — Spot the SC</title>
 <style>
-  :root{
-    --pink:#e91e63; --gold:#ffd700; --black:#111827; --beige:#f5f5dc;
-  }
+  :root{ --pink:#e91e63; --gold:#ffd700; --black:#111827; --beige:#f5f5dc; }
   *{box-sizing:border-box}
   html,body{height:100%;margin:0}
   body{
@@ -16,28 +14,21 @@
     background-size:cover;background-position:center;
     display:flex;align-items:flex-start;justify-content:center;
   }
-  .wrap{
-    width:min(92vw,1000px);
-    margin:clamp(12px,2.5vh,20px) auto 40px;
-  }
+  .wrap{ width:min(92vw,1000px); margin:clamp(12px,2.5vh,20px) auto 40px; }
   .hud{
     display:flex;gap:12px;align-items:center;justify-content:center;
     background:#fff;padding:10px 12px;border-radius:14px;
     border:2px solid var(--gold); box-shadow:0 6px 18px rgba(0,0,0,.06);
   }
   .chip{font-weight:700;color:var(--black)}
-  .btn{
-    border:2px solid var(--black); background:var(--black); color:#fff;
-    border-radius:12px; padding:8px 14px; font-weight:600; cursor:pointer;
-  }
+  .btn{ border:2px solid var(--black); background:var(--black); color:#fff;
+        border-radius:12px; padding:8px 14px; font-weight:600; cursor:pointer; }
   .btn:active{transform:translateY(1px)}
   .stage{
     position:relative; margin:18px auto 0;
     border-radius:22px; background:var(--beige);
     box-shadow:0 10px 28px rgba(0,0,0,.10);
-    /* The square scales but never exceeds the wrapper width */
-    width:100%; aspect-ratio:1/1;
-    overflow:hidden; /* ensures nothing spills and top isn't cut */
+    width:100%; aspect-ratio:1/1; overflow:hidden;
   }
   .round-tag{
     position:absolute; top:8px; left:8px; z-index:4;
@@ -45,10 +36,8 @@
     font-size:12px; padding:4px 10px; border-radius:999px;
     box-shadow:0 2px 8px rgba(0,0,0,.05);
   }
-  .overlay{
-    position:fixed; inset:0; background:rgba(0,0,0,.4);
-    display:none; align-items:center; justify-content:center; padding:16px;
-  }
+  .overlay{ position:fixed; inset:0; background:rgba(0,0,0,.4);
+            display:none; align-items:center; justify-content:center; padding:16px; }
   .overlay.show{display:flex}
   .card{
     background:#fff; color:var(--black);
@@ -58,7 +47,6 @@
   }
   .card .row{margin-top:14px; display:flex; gap:10px; justify-content:center}
   .small-note{font-size:12px; color:#333; text-align:center; margin-top:10px}
-  /* Sparkle */
   .spark line{stroke:var(--gold); stroke-width:2}
   .spark{animation:pop .6s ease-out forwards}
   @keyframes pop{ from{transform:scale(.1); opacity:.0} to{transform:scale(1); opacity:1} }
@@ -75,10 +63,7 @@
 
     <div class="stage" id="stage">
       <div class="round-tag" id="roundTag">Round 1</div>
-      <!-- responsive SVG fills the square -->
-      <svg id="svg" viewBox="0 0 1000 1000" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-        <!-- rings are injected by JS -->
-      </svg>
+      <svg id="svg" viewBox="0 0 1000 1000" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"></svg>
     </div>
 
     <p class="small-note">
@@ -100,10 +85,8 @@
 
 <script>
 (() => {
-  // ---------- constants ----------
-  const GOLD = getCss('--gold'), BLACK = getCss('--black'), PINK = getCss('--pink');
+  const GOLD = css('--gold'), BLACK = css('--black'), PINK = css('--pink');
   const svg = document.getElementById('svg');
-  const stage = document.getElementById('stage');
   const stCountEl = document.getElementById('stCount');
   const roundNowEl = document.getElementById('roundNow');
   const roundTag = document.getElementById('roundTag');
@@ -114,46 +97,46 @@
   const closeEnd = document.getElementById('closeEnd');
 
   const END_ROUND = 5;
-  // Logical square coords: 1000x1000 viewBox
   const CX = 500, CY = 500;
 
-  // ---------- state ----------
   let running = false;
   let round = 1;
-  let ringR = 420;        // main ring radius (in viewBox units)
-  let stitches = [];      // {id,angle,kind,clicked}
+  let ringR = 420;
+  let stitches = [];
   let hoverId = null;
   let isPointerDown = false;
   let lastPointerType = 'mouse';
   let lastAutoId = null, lastAutoAt = 0;
+  let currentPointer = null;
 
-  // ---------- utils ----------
-  function getCss(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function css(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
   const toRad = d => (d*Math.PI)/180;
   const dist2 = (x1,y1,x2,y2) => (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2);
   function pointOnRingDeg(deg, r=ringR){
     const a=toRad(deg); return {x:CX + r*Math.cos(a), y:CY + r*Math.sin(a)};
   }
   function stitchPath(kind){
-    let W=44, H=56; // base V
+    let W=44, H=56;
     if(kind==='too_wide') W*=1.3;
     if(kind==='too_shallow') H*=0.75;
     const bl={x:0,y:0}, tl={x:-W/2,y:-H}, tr={x:W/2,y:-H};
     return `M ${bl.x} ${bl.y} L ${tl.x} ${tl.y} M ${bl.x} ${bl.y} L ${tr.x} ${tr.y}`;
   }
   function countForRound(r){ return [0,12,18,24,30,36][r] ?? 36; }
-  function radiusForRound(r){ return 330 + r*18; } // tuned for 1000 viewBox
+  function radiusForRound(r){ return 330 + r*18; }
 
   function clearSvg(){ while(svg.firstChild) svg.removeChild(svg.firstChild); }
+  function addEl(tag, attrs, parent=svg){
+    const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for(const k in attrs) el.setAttribute(k, attrs[k]);
+    parent.appendChild(el); return el;
+  }
 
-  // ---------- drawing ----------
   function drawFrame(){
     clearSvg();
-    // rings
     addEl('circle', {cx:CX,cy:CY,r:ringR+140,fill:'none',stroke:GOLD,'stroke-width':4});
     addEl('circle', {cx:CX,cy:CY,r:ringR-150,fill:'none',stroke:'#e9ebef','stroke-dasharray':'5 14'});
 
-    // stitches
     const ordered=[...stitches].sort((a,b)=>a.angle-b.angle);
     for(const s of ordered){
       const base = pointOnRingDeg(s.angle);
@@ -165,11 +148,10 @@
       const sw = isHover? 8 : 6;
 
       const g = addEl('g', {transform:`translate(${base.x},${base.y}) rotate(${rot})`, 'data-id':s.id});
-      const p = addEl('path', {d:stitchPath(s.kind), fill:'none', stroke, 'stroke-width':sw, 'stroke-linecap':'round'});
+      const p = addEl('path', {d:stitchPath(s.kind), fill:'none', stroke, 'stroke-width':sw, 'stroke-linecap':'round'}, g);
       if(isHover) p.style.filter = `drop-shadow(0 0 8px ${GOLD})`;
     }
 
-    // hook (on top)
     if(currentPointer){
       const imgW = 140, imgH = 140;
       addEl('image',{
@@ -181,22 +163,14 @@
     }
   }
 
-  function addEl(tag, attrs){
-    const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
-    for(const k in attrs) el.setAttribute(k, attrs[k]);
-    svg.appendChild(el); return el;
-  }
-
-  // ---------- round/stitches ----------
   function genRound(r){
     const c = countForRound(r);
-    const arr = Array.from({length:c}, (_,i)=>{
+    stitches = Array.from({length:c}, (_,i)=>{
       const baseAngle = (360/c)*i - 90 + 5;
       const rr = Math.random();
       const kind = rr<0.72 ? 'real' : rr<0.84 ? 'wrong_orient' : rr<0.93 ? 'too_wide' : 'too_shallow';
       return {id:i, angle:baseAngle, kind, clicked:false};
     });
-    stitches = arr;
     ringR = radiusForRound(r);
     roundTag.textContent = `Round ${round}`;
     roundNowEl.textContent = String(round);
@@ -218,10 +192,7 @@
     startBtn.style.display='inline-block';
     pauseBtn.style.display='none';
   }
-
-  function remainingReal(){
-    return stitches.filter(s=>s.kind==='real' && !s.clicked).length;
-  }
+  function remainingReal(){ return stitches.filter(s=>s.kind==='real' && !s.clicked).length; }
 
   function selectStitch(s){
     if(!running || !s || s.clicked) return;
@@ -229,15 +200,14 @@
     sparkleAt(s);
     drawFrame();
     if(remainingReal()===0){
-      if(round>=END_ROUND){
+      if(round>=5){
         running=false;
         pauseBtn.style.display='none';
         startBtn.textContent='Play again';
         startBtn.style.display='inline-block';
         endOverlay.classList.add('show');
       }else{
-        round++;
-        genRound(round);
+        round++; genRound(round);
       }
     }
   }
@@ -249,15 +219,12 @@
     for(let i=0;i<rays;i++){
       const a = i*2*Math.PI/rays;
       const x2= base.x + R*Math.cos(a), y2= base.y + R*Math.sin(a);
-      const ln = addEl('line',{x1:base.x,y1:base.y,x2,y2});
+      const ln = addEl('line',{x1:base.x,y1:base.y,x2,y2}, g);
       ln.style.animationDelay = (i*0.02)+'s';
     }
-    // remove after a bit
     setTimeout(()=>{ if(g && g.parentNode) g.parentNode.removeChild(g); }, 600);
   }
 
-  // ---------- pointer + hit test ----------
-  let currentPointer = null;   // SVG-space coords
   function svgPointFromEvent(ev){
     const pt = svg.createSVGPoint();
     pt.x = ev.clientX; pt.y = ev.clientY;
@@ -286,7 +253,6 @@
 
   function maybeAutoSelectOnTouch(mx,my){
     if(!running) return;
-    // Larger snap on small screens; feels magnetic
     const snap = (window.innerWidth < 480) ? 76 : 66;
     const {best, within} = nearestStitch(mx,my, snap);
     const now = Date.now();
@@ -304,7 +270,6 @@
     if(within && best) selectStitch(best);
   }
 
-  // pointer handlers (mouse + touch unified)
   svg.addEventListener('pointerdown',(ev)=>{
     if(ev.isPrimary===false) return;
     lastPointerType = ev.pointerType || 'mouse';
@@ -322,7 +287,6 @@
     const p = svgPointFromEvent(ev);
     updateHover(p.x,p.y);
     if(isPointerDown && lastPointerType==='touch'){
-      // Auto-select continuously while sliding
       maybeAutoSelectOnTouch(p.x,p.y);
       ev.preventDefault();
     }
@@ -340,14 +304,9 @@
     isPointerDown=false; hoverId=null; currentPointer=null; drawFrame();
   });
 
-  // ---------- buttons ----------
   startBtn.addEventListener('click', ()=>{
     if(!running && round>1 && remainingReal()>0){
-      // resume
-      running=true;
-      startBtn.style.display='none';
-      pauseBtn.style.display='inline-block';
-      return;
+      running=true; startBtn.style.display='none'; pauseBtn.style.display='inline-block'; return;
     }
     start();
   });
@@ -355,10 +314,8 @@
   againEnd.addEventListener('click', ()=>{ endOverlay.classList.remove('show'); start(); });
   closeEnd.addEventListener('click', ()=>{ endOverlay.classList.remove('show'); });
 
-  // ---------- init ----------
-  // render an idle board so nothing is cut off before Start
+  // initial board (idle)
   genRound(1); running=false; startBtn.style.display='inline-block'; pauseBtn.style.display='none';
-
 })();
 </script>
 </body>
