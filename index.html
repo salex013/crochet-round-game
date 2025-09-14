@@ -9,7 +9,6 @@
   *{ box-sizing:border-box }
   html,body{ height:100%; margin:0 }
   body{
-    overflow:auto;
     font-family: Georgia, "Times New Roman", serif;
     background-image:url('https://wallpapers.com/images/hd/kate-spade-white-hearts-erxoa1ltp1qmbwnn.jpg');
     background-size:cover; background-position:center;
@@ -19,14 +18,13 @@
     padding-right:max(10px, env(safe-area-inset-right));
     padding-top:  max(10px, env(safe-area-inset-top));
     padding-bottom:max(10px, env(safe-area-inset-bottom));
+    overflow:auto;
   }
 
-  .wrap{
-    width:100%; max-width:900px;
-    display:flex; flex-direction:column; align-items:center; gap:14px;
-    padding-inline: clamp(10px, 2.5vmin, 28px);
-  }
+  .wrap{ width:100%; max-width:900px; display:flex; flex-direction:column; align-items:center; gap:14px; }
+
   h1{ margin:0; color:var(--black); font-size:26px; letter-spacing:.02em; text-align:center }
+  @media (max-width:480px){ h1{ font-size:20px } }
 
   .bar{ display:flex; flex-wrap:wrap; align-items:center; gap:14px; background:#fff;
         border:2px solid var(--gold); padding:8px 12px; border-radius:14px; box-shadow:0 4px 18px rgba(0,0,0,.08) }
@@ -34,32 +32,35 @@
   button{ background:var(--black); color:#fff; border:2px solid var(--black); border-radius:12px; padding:8px 14px; cursor:pointer; font-weight:700 }
   button:hover{ border-color:var(--gold) }
 
-  .stage{ position:relative; width:100%; display:flex; justify-content:center; overflow:visible; }
-  .tag{ position:absolute; top:-26px; left:8px; font-size:12px; background:#fff; border:1.5px solid var(--gold);
-        color:var(--black); padding:4px 10px; border-radius:999px; box-shadow:0 2px 8px rgba(0,0,0,.06) }
+  .stage{ position:relative; width:100%; display:flex; justify-content:center; }
 
-  /* The board’s *width* is controlled by JS for perfect fit. Height follows aspect-ratio. */
+  /* Board: height follows aspect ratio; JS only sets width */
   svg.board{
-    aspect-ratio: 640 / 720;     /* exact proportion */
-    width: 600px;                /* placeholder; JS will set a precise width */
+    aspect-ratio: 640 / 720;
+    width: 600px;   /* placeholder; JS will set the real width */
     height: auto;
     background: var(--beige);
     border-radius: 18px;
     box-shadow: 0 10px 24px rgba(0,0,0,.12);
-    touch-action: none; -ms-touch-action: none;
-    overflow: visible;
+    touch-action: none;
+  }
+
+  .tag{
+    position:absolute; top:8px; left:12px;
+    font-size:12px; background:#fff; border:1.5px solid var(--gold);
+    color:var(--black); padding:4px 10px; border-radius:999px;
+    box-shadow:0 2px 8px rgba(0,0,0,.06)
   }
 
   .overlay{ position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; padding:16px }
   .overlay.show{ display:flex }
   .card{ background:#fff; border:3px solid var(--gold); color:var(--black); border-radius:18px; box-shadow:0 12px 28px rgba(0,0,0,.18);
          padding:20px; max-width:520px; width:100%; text-align:center }
-  .card h2{ margin:8px 0 6px 0 } .row{ display:flex; justify-content:center; gap:12px; margin-top:12px }
+  .card h2{ margin:8px 0 6px } .row{ display:flex; justify-content:center; gap:12px; margin-top:12px }
 
   .note{ font-size:12px; max-width:640px; text-align:center; color:var(--black) }
   .spark line,.spark circle{ animation:fadeIn .6s ease-out forwards } .spark line{ opacity:0 } @keyframes fadeIn{ to{opacity:1} }
   .noselect{ -webkit-user-select:none; user-select:none }
-  @media (max-width: 420px){ h1{ font-size:20px } }
 </style>
 </head>
 <body>
@@ -95,10 +96,11 @@
 
 <script>
 (function(){
+  // ---------- constants ----------
   const PINK="#E91E63", GOLD="#FFD700", BLACK="#111827";
   const WIDTH=640, HEIGHT=720, RATIO=WIDTH/HEIGHT, cx=WIDTH/2, cy=340, END_ROUND=5;
 
-  // elements
+  // ---------- els ----------
   const roundEl = document.getElementById('ui-round');
   const countEl = document.getElementById('ui-count');
   const startBtn = document.getElementById('btn-start');
@@ -111,54 +113,32 @@
   const titleEl = document.getElementById('title');
   const barEl = document.getElementById('bar');
   const noteEl = document.getElementById('note');
-  const stageEl = document.getElementById('stage');
   const wrapEl = document.getElementById('wrap');
 
-  // ----- smart sizing so NOTHING clips on desktop or phone -----
+  // ---------- bulletproof sizing (desktop + phone) ----------
   function sizeBoard(){
-    // Horizontal cap
-    const maxByWidth = Math.min(wrapEl.clientWidth, window.innerWidth*0.92, 1000);
+    // Measure vertical space *outside* the board we must reserve
+    const above = titleEl.offsetHeight + 8 + barEl.offsetHeight + 10 + 32; // 32px safety
+    const below = 12 + noteEl.offsetHeight + 10;
 
-    // Vertical cap: available height minus everything above/below the board
-    const bodyPadTop = parseFloat(getComputedStyle(document.body).paddingTop) || 0;
-    const bodyPadBottom = parseFloat(getComputedStyle(document.body).paddingBottom) || 0;
+    // Use small viewport height (svh) when supported to avoid iOS URL bar jumps
+    const svh = Math.min(window.innerHeight || 0, (window.visualViewport?.height || window.innerHeight || 0));
+    const availH = Math.max(280, svh - (above + below));
 
-    const above = titleEl.getBoundingClientRect().height + 8
-                + barEl.getBoundingClientRect().height + 14
-                + 26; // little space for the round tag
+    const widthFromHeight = availH * RATIO;            // width that fits vertically
+    const widthFromViewport = window.innerWidth * 0.90; // keep some side breathing room
+    const widthFromWrap = wrapEl.clientWidth;           // don’t overflow container
 
-    const below = 12 + noteEl.getBoundingClientRect().height;
-
-    // Use small viewport height when supported
-    const viewH = Math.min(
-      (window.innerHeight || 0),
-      (window.visualViewport ? window.visualViewport.height : window.innerHeight || 0)
-    );
-
-    const availH = Math.max(0,
-      viewH - (bodyPadTop + bodyPadBottom + above + below)
-    );
-
-    // Width that would fit within the available height, respecting aspect ratio
-    const maxByHeight = availH * RATIO;
-
-    // Final width: min of horizontal limit, vertical limit, and a hard max pixel size
-    const finalW = Math.max(280, Math.min(maxByWidth, maxByHeight, 780)); // 780px hard cap looks great on desktop
-    svg.style.width = finalW + 'px';
+    const boardW = Math.min(780, widthFromHeight, widthFromViewport, widthFromWrap);
+    svg.style.width = boardW + 'px';
   }
+  ['load','resize','orientationchange'].forEach(ev => window.addEventListener(ev, ()=>{ sizeBoard(); }, {passive:true}));
+  setTimeout(sizeBoard, 120); // catch font/layout shifts
 
-  // Resize on load, resize, orientation, font load jitter
-  window.addEventListener('load', sizeBoard);
-  window.addEventListener('resize', sizeBoard);
-  window.addEventListener('orientationchange', ()=>setTimeout(sizeBoard, 50));
-  // in case fonts/layout shift after paint
-  setTimeout(sizeBoard, 100);
-  setTimeout(sizeBoard, 400);
-
-  // ----- game logic (unchanged selection improvements) -----
+  // ---------- game state ----------
   let running=false, round=1, stitches=[], ringR=160;
-  let hoverId=null, pointerPos=null, isPointerDown=false;
-  let dwellTimer=null, lastDownHover=null;
+  let hoverId=null, pointerPos=null;
+  let isPointerDown=false, dwellTimer=null, lastDownHover=null;
 
   const counts=[0,12,18,24,30,36];
   const toRad=d=>d*Math.PI/180;
@@ -187,7 +167,6 @@
     tagEl.textContent=`Round ${r}`;
     countEl.textContent=c;
     draw();
-    sizeBoard();
   }
 
   function start(){
@@ -265,7 +244,7 @@
       path.setAttribute('fill','none'); path.setAttribute('stroke',strokeColor);
       path.setAttribute('stroke-width',strokeW); path.setAttribute('stroke-linecap','round');
       if(isHover) path.style.filter=`drop-shadow(0 0 6px ${GOLD})`;
-      g.addEventListener('click',()=>selectStitch(s));  // desktop fallback
+      g.addEventListener('click',()=>selectStitch(s));  // desktop click
       svg.appendChild(g); g.appendChild(path);
     }
 
@@ -279,7 +258,7 @@
     }
   }
 
-  // pointer helpers
+  // ---------- pointer logic (hover + select) ----------
   const svgPointFromEvent=(ev)=>{
     const rect=svg.getBoundingClientRect();
     const vb=svg.viewBox.baseVal;
@@ -320,7 +299,7 @@
     }
   }
 
-  // dwell-to-select
+  // dwell-to-select for phones
   function startDwell(){
     clearTimeout(dwellTimer);
     lastDownHover = hoverId;
@@ -333,8 +312,6 @@
   }
   function cancelDwell(){ clearTimeout(dwellTimer); dwellTimer=null; }
 
-  // pointer events
-  let isPointerDown=false;
   svg.addEventListener('pointerdown',(ev)=>{
     if(ev.isPrimary===false) return;
     isPointerDown=true;
@@ -377,8 +354,14 @@
   closeBtn.addEventListener('click',()=>overlay.classList.remove('show'));
   againBtn.addEventListener('click',()=>{ overlay.classList.remove('show'); start(); });
 
-  // init
-  genRound(1); running=false; startBtn.style.display='inline-block'; pauseBtn.style.display='none';
+  // initial layout + placeholder (no stitches until Start)
+  sizeBoard();
+  // draw empty board once so you can see the full square before starting
+  (function drawEmpty(){
+    while(svg.firstChild) svg.firstChild.remove();
+    svg.appendChild(circle(cx,cy, 230,'none',GOLD,2));
+    const inner=circle(cx,cy, 70,'none','#f3f4f6',2); inner.setAttribute('stroke-dasharray','3 8'); svg.appendChild(inner);
+  })();
 })();
 </script>
 </body>
