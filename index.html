@@ -12,20 +12,24 @@
     font-family: Georgia, "Times New Roman", serif;
     background-image:url('https://wallpapers.com/images/hd/kate-spade-white-hearts-erxoa1ltp1qmbwnn.jpg');
     background-size:cover; background-position:center;
-    display:flex; align-items:center; justify-content:center; padding:24px;
+    display:flex; align-items:center; justify-content:center; padding:20px;
   }
-  .wrap{ display:flex; flex-direction:column; align-items:center; gap:16px; max-width:820px; width:100% }
-  h1{ margin:0; color:var(--black); font-size:28px; letter-spacing:.02em }
-  .bar{ display:flex; align-items:center; gap:24px; background:#fff; border:2px solid var(--gold);
-        padding:10px 14px; border-radius:14px; box-shadow:0 4px 18px rgba(0,0,0,.08) }
-  .pill{ font-weight:700; color:var(--black) } .pill .v{ color:var(--pink) }
-  button{ background:var(--black); color:#fff; border:2px solid var(--black); border-radius:12px; padding:8px 16px; cursor:pointer; font-weight:700 }
+  .wrap{ display:flex; flex-direction:column; align-items:center; gap:14px; width:100%; max-width:820px }
+  h1{ margin:0; color:var(--black); font-size:26px; letter-spacing:.02em; text-align:center }
+  .bar{ display:flex; flex-wrap:wrap; align-items:center; gap:14px; background:#fff;
+        border:2px solid var(--gold); padding:8px 12px; border-radius:14px; box-shadow:0 4px 18px rgba(0,0,0,.08) }
+  .pill{ font-weight:700; color:var(--black); font-size:14px } .pill .v{ color:var(--pink) }
+  button{ background:var(--black); color:#fff; border:2px solid var(--black); border-radius:12px; padding:8px 14px; cursor:pointer; font-weight:700 }
   button:hover{ border-color:var(--gold) }
-  .stage{ position:relative } .tag{ position:absolute; top:-28px; left:0; font-size:12px; background:#fff; border:1.5px solid var(--gold);
+  .stage{ position:relative; width:100%; display:flex; justify-content:center }
+  .tag{ position:absolute; top:-26px; left:8px; font-size:12px; background:#fff; border:1.5px solid var(--gold);
         color:var(--black); padding:4px 10px; border-radius:999px; box-shadow:0 2px 8px rgba(0,0,0,.06) }
-  svg.board{ background:var(--beige); border-radius:18px; box-shadow:0 10px 24px rgba(0,0,0,.12);
-             /* critical for touch-drag */
-             touch-action:none; -ms-touch-action:none }
+  /* RESPONSIVE SVG: width follows viewport, height auto, but internal coords stay 640x720 */
+  svg.board{
+    background:var(--beige); border-radius:18px; box-shadow:0 10px 24px rgba(0,0,0,.12);
+    width:min(92vw, 680px); height:auto;
+    touch-action:none; -ms-touch-action:none;
+  }
   .overlay{ position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; padding:16px }
   .overlay.show{ display:flex }
   .card{ background:#fff; border:3px solid var(--gold); color:var(--black); border-radius:18px; box-shadow:0 12px 28px rgba(0,0,0,.18);
@@ -34,7 +38,7 @@
   .note{ font-size:12px; max-width:640px; text-align:center; color:var(--black) }
   .spark line,.spark circle{ animation:fadeIn .6s ease-out forwards } .spark line{ opacity:0 } @keyframes fadeIn{ to{opacity:1} }
   .noselect{ -webkit-user-select:none; user-select:none }
-  @media (max-width: 480px){ h1{ font-size:22px } }
+  @media (max-width: 420px){ h1{ font-size:20px } }
 </style>
 </head>
 <body>
@@ -50,17 +54,18 @@
 
     <div class="stage">
       <div class="tag noselect" id="round-tag">Round 1</div>
+      <!-- Fixed logical coords; visual size is controlled by CSS above -->
       <svg id="svg" class="board" width="640" height="720" viewBox="0 0 640 720" preserveAspectRatio="xMidYMid meet"></svg>
     </div>
 
-    <p class="note">Drag the <b>hook</b> with your finger to hover a stitch, or just <b>tap</b> near one.
-      Lift your finger to select. Finish each round to grow the circle.</p>
+    <p class="note">Drag the <b>hook</b> with your finger to highlight a stitch, or just <b>tap</b> near one.
+      Lift your finger to select. Finishing all “V” stitches advances the round.</p>
   </div>
 
   <div id="overlay" class="overlay">
     <div class="card">
       <h2>Cat complete! 🐱✨</h2>
-      <p>You finished Round 5 (R1–R5 of the pattern). Beautiful work!</p>
+      <p>You finished Round 5 (R1–R5). Beautiful work!</p>
       <div class="row">
         <button id="btn-close">Close</button>
         <button id="btn-again">Play again</button>
@@ -118,6 +123,7 @@
   function start(){
     round=1; running=true; hoverId=null; pointerPos=null;
     startBtn.style.display='none'; pauseBtn.style.display='inline-block';
+    startBtn.textContent='Start';
     genRound(1);
   }
   function pause(){
@@ -161,7 +167,7 @@
   }
 
   function selectStitch(s){
-    if(!running || s.clicked) return;
+    if(!running || !s || s.clicked) return;
     s.clicked=true;
     if(s.kind==='real'){ const b=pointOnRingDeg(s.angle, ringR); sparkle(b.x, b.y-18); }
     draw(); checkEnd();
@@ -190,17 +196,18 @@
       path.setAttribute('fill','none'); path.setAttribute('stroke',strokeColor);
       path.setAttribute('stroke-width',strokeW); path.setAttribute('stroke-linecap','round');
       if(isHover) path.style.filter=`drop-shadow(0 0 6px ${GOLD})`;
-      // desktop click fallback
+      // desktop/tap fallback
       g.addEventListener('click',()=>selectStitch(s));
       svg.appendChild(g); g.appendChild(path);
     }
 
+    // crochet hook image
     if(pointerPos){
       const img=document.createElementNS('http://www.w3.org/2000/svg','image');
       img.setAttributeNS('http://www.w3.org/1999/xlink','href','https://athriftynotion.com/cdn/shop/files/SizeNCrochetHook_800x.png?v=1753294266');
-      const hookW = (window.innerWidth<420)? 110:100, hookH=hookW;
+      const hookW = (window.innerWidth<420)? 110:100;
       img.setAttribute('x',pointerPos.x-40); img.setAttribute('y',pointerPos.y-40);
-      img.setAttribute('width',hookW); img.setAttribute('height',hookH);
+      img.setAttribute('width',hookW); img.setAttribute('height',hookW);
       img.setAttribute('pointer-events','none'); svg.appendChild(img);
     }
   }
@@ -209,11 +216,9 @@
   function svgPointFromEvent(ev){
     const rect=svg.getBoundingClientRect();
     const vb=svg.viewBox.baseVal;
-    const scaleX = vb && vb.width ? (vb.width/rect.width) : 1;
-    const scaleY = vb && vb.height? (vb.height/rect.height): 1;
-    const x=(ev.clientX-rect.left)*scaleX;
-    const y=(ev.clientY-rect.top)*scaleY;
-    return {x,y};
+    const scaleX = vb.width/rect.width;
+    const scaleY = vb.height/rect.height;
+    return { x:(ev.clientX-rect.left)*scaleX, y:(ev.clientY-rect.top)*scaleY };
   }
 
   function nearestStitch(mx,my, snapPx){
@@ -224,14 +229,14 @@
       const d2=dist2(mx,my,b.x,b.y);
       if(d2<bestD2){ bestD2=d2; best=s; }
     }
-    return (bestD2<=snap2)? best : null;
+    return {best, bestD2, within: bestD2<=snap2};
   }
 
   function updateHover(mx,my){
     pointerPos={x:mx,y:my};
-    const snap = (window.innerWidth<420)? 40 : 30;   // bigger target on phones
-    const near = nearestStitch(mx,my,snap);
-    hoverId = near ? near.id : null;
+    const snap = (window.innerWidth<480)? 56 : 38;   // larger highlight zone on phones
+    const {best, within} = nearestStitch(mx,my,snap);
+    hoverId = within && best ? best.id : (best ? best.id : null); // still point to best for visual feedback
     draw();
   }
 
@@ -239,9 +244,10 @@
   svg.addEventListener('pointerdown',(ev)=>{
     if(ev.isPrimary===false) return;
     isPointerDown=true;
+    try { svg.setPointerCapture(ev.pointerId); } catch(_) {}
     const p=svgPointFromEvent(ev);
     updateHover(p.x,p.y);
-    ev.preventDefault();   // stop page scroll
+    ev.preventDefault();
   },{passive:false});
 
   svg.addEventListener('pointermove',(ev)=>{
@@ -254,11 +260,19 @@
   svg.addEventListener('pointerup',(ev)=>{
     if(ev.isPrimary===false) return;
     isPointerDown=false;
+    try { svg.releasePointerCapture(ev.pointerId); } catch(_) {}
     const p=svgPointFromEvent(ev);
-    // NEW: select the nearest stitch even if hoverId didn't set
-    const snap = (window.innerWidth<420)? 46 : 34;   // generous tap radius
-    const target = nearestStitch(p.x,p.y,snap);
-    if(target) selectStitch(target);
+
+    // 1) If something is highlighted, pick it (most reliable on iOS/iframes)
+    if(hoverId!=null){
+      const s = stitches.find(st=>st.id===hoverId);
+      if(s) selectStitch(s);
+    } else {
+      // 2) Else select nearest with generous radius
+      const snap = (window.innerWidth<480)? 64 : 46;
+      const {best} = nearestStitch(p.x,p.y,snap);
+      if(best) selectStitch(best);
+    }
     ev.preventDefault();
   },{passive:false});
 
@@ -269,8 +283,8 @@
   // ---------- UI ----------
   startBtn.addEventListener('click',()=>{ if(!running) start(); });
   pauseBtn.addEventListener('click',()=>pause());
-  closeBtn.addEventListener('click',()=>overlay.classList.remove('show'));
-  againBtn.addEventListener('click',()=>{ overlay.classList.remove('show'); start(); });
+  document.getElementById('btn-close').addEventListener('click',()=>overlay.classList.remove('show'));
+  document.getElementById('btn-again').addEventListener('click',()=>{ overlay.classList.remove('show'); start(); });
 
   // init
   genRound(1); running=false; startBtn.style.display='inline-block'; pauseBtn.style.display='none';
