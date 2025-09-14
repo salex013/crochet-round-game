@@ -2,26 +2,30 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Crochet Round — Spot the SC</title>
 <style>
   :root{ --pink:#E91E63; --gold:#FFD700; --black:#111827; --beige:#f5f5dc; }
   *{ box-sizing:border-box }
   html,body{ height:100%; margin:0 }
   body{
-    overflow:auto; /* allow scroll if height is tight */
+    /* allow scroll if it ever needs a little extra */
+    overflow:auto;
     font-family: Georgia, "Times New Roman", serif;
     background-image:url('https://wallpapers.com/images/hd/kate-spade-white-hearts-erxoa1ltp1qmbwnn.jpg');
     background-size:cover; background-position:center;
     display:flex; align-items:center; justify-content:center;
-    padding: clamp(12px, 2.5vmin, 24px);
+    padding: clamp(10px, 2.5vmin, 28px);
+    padding-left: max(10px, env(safe-area-inset-left));
+    padding-right:max(10px, env(safe-area-inset-right));
+    padding-top:  max(10px, env(safe-area-inset-top));
+    padding-bottom:max(10px, env(safe-area-inset-bottom));
   }
 
   .wrap{
+    width:100%; max-width:900px;
     display:flex; flex-direction:column; align-items:center; gap:14px;
-    width:100%;
-    max-width:900px;
-    padding-inline: clamp(12px, 2.5vmin, 28px);
+    padding-inline: clamp(10px, 2.5vmin, 28px);
   }
   h1{ margin:0; color:var(--black); font-size:26px; letter-spacing:.02em; text-align:center }
 
@@ -35,10 +39,15 @@
   .tag{ position:absolute; top:-26px; left:8px; font-size:12px; background:#fff; border:1.5px solid var(--gold);
         color:var(--black); padding:4px 10px; border-radius:999px; box-shadow:0 2px 8px rgba(0,0,0,.06) }
 
+  /* --- NEVER CLIP, same look phone/desktop --- */
   svg.board{
-    /* Keep proportion + never overflow short viewports */
-    aspect-ratio: 640 / 720;
-    width: min(92vw, calc(92vh * (640 / 720)), 700px);
+    aspect-ratio: 640 / 720;          /* keep exact proportion */
+    /* cap by width, by height (using svh), and by a max pixel size */
+    width: min(
+      92vw,
+      calc(92svh * (640 / 720)),
+      720px
+    );
     height: auto;
     background: var(--beige);
     border-radius: 18px;
@@ -214,8 +223,7 @@
       path.setAttribute('fill','none'); path.setAttribute('stroke',strokeColor);
       path.setAttribute('stroke-width',strokeW); path.setAttribute('stroke-linecap','round');
       if(isHover) path.style.filter=`drop-shadow(0 0 6px ${GOLD})`;
-      // desktop/tap fallback
-      g.addEventListener('click',()=>selectStitch(s));
+      g.addEventListener('click',()=>selectStitch(s));  // desktop fallback
       svg.appendChild(g); g.appendChild(path);
     }
 
@@ -252,25 +260,28 @@
 
   function updateHover(mx,my){
     pointerPos={x:mx,y:my};
-    const snap = (window.innerWidth<480)? 56 : 38;   // larger highlight zone on phones
+    const snap = (window.innerWidth<480)? 58 : 38;   // highlight zone
     const {best, within} = nearestStitch(mx,my,snap);
     hoverId = within && best ? best.id : (best ? best.id : null);
     draw();
   }
 
-  // ---------- selection helper (multiple fallbacks) ----------
+  // ---------- robust selection on pointerup ----------
   function selectAtScreenEvent(ev) {
     if (!running) return;
+    // 1) if we have a hover, take it
     if (hoverId != null) {
       const s1 = stitches.find(st => st.id === hoverId);
       if (s1) { selectStitch(s1); return; }
     }
+    // 2) otherwise choose nearest to event point with generous snap
     const p = svgPointFromEvent(ev);
-    const snap = (window.innerWidth < 480) ? 64 : 46;
-    const { best } = nearestStitch(p.x, p.y, snap);
+    const generous = (window.innerWidth < 480) ? 85 : 50;
+    const { best } = nearestStitch(p.x, p.y, generous);
     if (best) { selectStitch(best); return; }
+    // 3) last resort: choose nearest to the last pointerPos
     if (pointerPos) {
-      const { best: best2 } = nearestStitch(pointerPos.x, pointerPos.y, snap);
+      const { best: best2 } = nearestStitch(pointerPos.x, pointerPos.y, generous);
       if (best2) selectStitch(best2);
     }
   }
@@ -284,7 +295,7 @@
         const s = (lastDownHover!=null) ? stitches.find(st=>st.id===lastDownHover) : null;
         if (s && !s.clicked) selectStitch(s);
       }
-    }, 180);
+    }, 170);
   }
   function cancelDwell(){ clearTimeout(dwellTimer); dwellTimer=null; }
 
