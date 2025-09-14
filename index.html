@@ -80,7 +80,7 @@
     </div>
 
     <p class="note" id="note">Drag the <b>hook</b> with your finger to highlight a stitch, or just <b>tap</b> near one.
-      Lift your finger (or dwell briefly) to select. Finishing all “V” stitches advances the round.</p>
+      The stitch is selected as soon as the hook touches it. Finishing all “V” stitches advances the round.</p>
   </div>
 
   <div id="overlay" class="overlay">
@@ -117,23 +117,21 @@
 
   // ---------- bulletproof sizing (desktop + phone) ----------
   function sizeBoard(){
-    // Measure vertical space *outside* the board we must reserve
-    const above = titleEl.offsetHeight + 8 + barEl.offsetHeight + 10 + 32; // 32px safety
+    const above = titleEl.offsetHeight + 8 + barEl.offsetHeight + 10 + 32; // headroom
     const below = 12 + noteEl.offsetHeight + 10;
 
-    // Use small viewport height (svh) when supported to avoid iOS URL bar jumps
     const svh = Math.min(window.innerHeight || 0, (window.visualViewport?.height || window.innerHeight || 0));
     const availH = Math.max(280, svh - (above + below));
 
-    const widthFromHeight = availH * RATIO;            // width that fits vertically
-    const widthFromViewport = window.innerWidth * 0.90; // keep some side breathing room
-    const widthFromWrap = wrapEl.clientWidth;           // don’t overflow container
+    const widthFromHeight = availH * RATIO;
+    const widthFromViewport = window.innerWidth * 0.90;
+    const widthFromWrap = wrapEl.clientWidth;
 
     const boardW = Math.min(780, widthFromHeight, widthFromViewport, widthFromWrap);
     svg.style.width = boardW + 'px';
   }
   ['load','resize','orientationchange'].forEach(ev => window.addEventListener(ev, ()=>{ sizeBoard(); }, {passive:true}));
-  setTimeout(sizeBoard, 120); // catch font/layout shifts
+  setTimeout(sizeBoard, 120);
 
   // ---------- game state ----------
   let running=false, round=1, stitches=[], ringR=160;
@@ -251,9 +249,15 @@
     if(pointerPos){
       const img=document.createElementNS('http://www.w3.org/2000/svg','image');
       img.setAttributeNS('http://www.w3.org/1999/xlink','href','https://athriftynotion.com/cdn/shop/files/SizeNCrochetHook_800x.png?v=1753294266');
-      const hookW = (window.innerWidth<420)? 110:100;
-      img.setAttribute('x',pointerPos.x-40); img.setAttribute('y',pointerPos.y-40);
-      img.setAttribute('width',hookW); img.setAttribute('height',hookW);
+
+      /* Smooth, responsive hook size */
+      const boardW = svg.getBoundingClientRect().width;
+      const hookW = Math.max(80, Math.min(140, boardW * 0.16));
+      img.setAttribute('x', pointerPos.x - hookW * 0.4);
+      img.setAttribute('y', pointerPos.y - hookW * 0.4);
+      img.setAttribute('width', hookW);
+      img.setAttribute('height', hookW);
+
       img.setAttribute('pointer-events','none'); svg.appendChild(img);
     }
   }
@@ -276,6 +280,17 @@
     }
     return {best, bestD2, within: bestD2<=snap2};
   };
+
+  /* NEW: instant touch-to-select */
+  function instantTouchSelect(mx, my) {
+    if (!running) return;
+    const snap = (window.innerWidth < 480) ? 76 : 62; // generous on phones
+    const { best, within } = nearestStitch(mx, my, snap);
+    if (within && best && !best.clicked) {
+      selectStitch(best);
+    }
+  }
+
   function updateHover(mx,my){
     pointerPos={x:mx,y:my};
     const snap = (window.innerWidth<480)? 58 : 38;
@@ -283,6 +298,7 @@
     hoverId = within && best ? best.id : (best ? best.id : null);
     draw();
   }
+
   function selectAtScreenEvent(ev) {
     if (!running) return;
     if (hoverId != null) {
@@ -299,7 +315,7 @@
     }
   }
 
-  // dwell-to-select for phones
+  // dwell-to-select (kept as a quick backup)
   function startDwell(){
     clearTimeout(dwellTimer);
     lastDownHover = hoverId;
@@ -308,7 +324,7 @@
         const s = (lastDownHover!=null) ? stitches.find(st=>st.id===lastDownHover) : null;
         if (s && !s.clicked) selectStitch(s);
       }
-    }, 170);
+    }, 80); // quicker dwell
   }
   function cancelDwell(){ clearTimeout(dwellTimer); dwellTimer=null; }
 
@@ -318,6 +334,7 @@
     try { svg.setPointerCapture(ev.pointerId); } catch(_) {}
     const p=svgPointFromEvent(ev);
     updateHover(p.x,p.y);
+    if (ev.pointerType === 'touch') instantTouchSelect(p.x, p.y); // NEW
     startDwell();
     ev.preventDefault();
   },{passive:false});
@@ -326,6 +343,7 @@
     if(ev.isPrimary===false) return;
     const p=svgPointFromEvent(ev);
     updateHover(p.x,p.y);
+    if (isPointerDown && ev.pointerType === 'touch') instantTouchSelect(p.x, p.y); // NEW
     if(isPointerDown) startDwell();
     if(isPointerDown) ev.preventDefault();
   },{passive:false});
@@ -356,7 +374,6 @@
 
   // initial layout + placeholder (no stitches until Start)
   sizeBoard();
-  // draw empty board once so you can see the full square before starting
   (function drawEmpty(){
     while(svg.firstChild) svg.firstChild.remove();
     svg.appendChild(circle(cx,cy, 230,'none',GOLD,2));
