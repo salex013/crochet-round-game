@@ -9,31 +9,50 @@
   *{ box-sizing:border-box }
   html,body{ height:100%; margin:0 }
   body{
+    overflow:auto; /* allow scroll if height is tight */
     font-family: Georgia, "Times New Roman", serif;
     background-image:url('https://wallpapers.com/images/hd/kate-spade-white-hearts-erxoa1ltp1qmbwnn.jpg');
     background-size:cover; background-position:center;
-    display:flex; align-items:center; justify-content:center; padding:20px;
+    display:flex; align-items:center; justify-content:center;
+    padding: clamp(12px, 2.5vmin, 24px);
   }
-  .wrap{ display:flex; flex-direction:column; align-items:center; gap:14px; width:100%; max-width:820px }
+
+  .wrap{
+    display:flex; flex-direction:column; align-items:center; gap:14px;
+    width:100%;
+    max-width:900px;
+    padding-inline: clamp(12px, 2.5vmin, 28px);
+  }
   h1{ margin:0; color:var(--black); font-size:26px; letter-spacing:.02em; text-align:center }
+
   .bar{ display:flex; flex-wrap:wrap; align-items:center; gap:14px; background:#fff;
         border:2px solid var(--gold); padding:8px 12px; border-radius:14px; box-shadow:0 4px 18px rgba(0,0,0,.08) }
   .pill{ font-weight:700; color:var(--black); font-size:14px } .pill .v{ color:var(--pink) }
   button{ background:var(--black); color:#fff; border:2px solid var(--black); border-radius:12px; padding:8px 14px; cursor:pointer; font-weight:700 }
   button:hover{ border-color:var(--gold) }
-  .stage{ position:relative; width:100%; display:flex; justify-content:center }
+
+  .stage{ position:relative; width:100%; display:flex; justify-content:center; overflow:visible; }
   .tag{ position:absolute; top:-26px; left:8px; font-size:12px; background:#fff; border:1.5px solid var(--gold);
         color:var(--black); padding:4px 10px; border-radius:999px; box-shadow:0 2px 8px rgba(0,0,0,.06) }
+
   svg.board{
-    background:var(--beige); border-radius:18px; box-shadow:0 10px 24px rgba(0,0,0,.12);
-    width:min(92vw, 680px); height:auto;
-    touch-action:none; -ms-touch-action:none;
+    /* Keep proportion + never overflow short viewports */
+    aspect-ratio: 640 / 720;
+    width: min(92vw, calc(92vh * (640 / 720)), 700px);
+    height: auto;
+    background: var(--beige);
+    border-radius: 18px;
+    box-shadow: 0 10px 24px rgba(0,0,0,.12);
+    touch-action: none; -ms-touch-action: none;
+    overflow: visible; /* glow/hook never looks clipped */
   }
+
   .overlay{ position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; padding:16px }
   .overlay.show{ display:flex }
   .card{ background:#fff; border:3px solid var(--gold); color:var(--black); border-radius:18px; box-shadow:0 12px 28px rgba(0,0,0,.18);
          padding:20px; max-width:520px; width:100%; text-align:center }
   .card h2{ margin:8px 0 6px 0 } .row{ display:flex; justify-content:center; gap:12px; margin-top:12px }
+
   .note{ font-size:12px; max-width:640px; text-align:center; color:var(--black) }
   .spark line,.spark circle{ animation:fadeIn .6s ease-out forwards } .spark line{ opacity:0 } @keyframes fadeIn{ to{opacity:1} }
   .noselect{ -webkit-user-select:none; user-select:none }
@@ -239,10 +258,9 @@
     draw();
   }
 
-  // ---------- selection helper ----------
+  // ---------- selection helper (multiple fallbacks) ----------
   function selectAtScreenEvent(ev) {
     if (!running) return;
-    // Prefer the current highlight if present
     if (hoverId != null) {
       const s1 = stitches.find(st => st.id === hoverId);
       if (s1) { selectStitch(s1); return; }
@@ -257,17 +275,16 @@
     }
   }
 
-  // ---------- dwell-to-select (works if pointerup is swallowed) ----------
+  // ---------- dwell-to-select ----------
   function startDwell(){
     clearTimeout(dwellTimer);
     lastDownHover = hoverId;
     dwellTimer = setTimeout(()=>{
       if (isPointerDown && running) {
-        // If still pressed and still over same stitch, select it
         const s = (lastDownHover!=null) ? stitches.find(st=>st.id===lastDownHover) : null;
         if (s && !s.clicked) selectStitch(s);
       }
-    }, 180); // ~a quick press-and-hold
+    }, 180);
   }
   function cancelDwell(){ clearTimeout(dwellTimer); dwellTimer=null; }
 
@@ -286,7 +303,7 @@
     if(ev.isPrimary===false) return;
     const p=svgPointFromEvent(ev);
     updateHover(p.x,p.y);
-    if(isPointerDown) startDwell(); // restart dwell when moving, so hold-over selects
+    if(isPointerDown) startDwell();
     if(isPointerDown) ev.preventDefault();
   },{passive:false});
 
@@ -303,10 +320,8 @@
     pointerPos=null; hoverId=null; cancelDwell(); draw();
   });
 
-  // Extra safety: click/tap
+  // extra fallbacks
   svg.addEventListener('click', (ev) => { selectAtScreenEvent(ev); });
-
-  // Extra-extra safety: global pointerup (for iframe swallowing)
   window.addEventListener('pointerup', (ev) => { selectAtScreenEvent(ev); }, { passive:false });
   document.addEventListener('pointerup', (ev) => { selectAtScreenEvent(ev); }, { passive:false });
 
@@ -316,7 +331,7 @@
   closeBtn.addEventListener('click',()=>overlay.classList.remove('show'));
   againBtn.addEventListener('click',()=>{ overlay.classList.remove('show'); start(); });
 
-  // init
+  // init state
   genRound(1); running=false; startBtn.style.display='inline-block'; pauseBtn.style.display='none';
 })();
 </script>
