@@ -24,7 +24,7 @@
   .stage{ position:relative; width:100%; display:flex; justify-content:center }
   .tag{ position:absolute; top:-26px; left:8px; font-size:12px; background:#fff; border:1.5px solid var(--gold);
         color:var(--black); padding:4px 10px; border-radius:999px; box-shadow:0 2px 8px rgba(0,0,0,.06) }
-  /* RESPONSIVE SVG: width follows viewport, height auto, but internal coords stay 640x720 */
+  /* Responsive SVG: scales to phone width, but keeps 640x720 internal coords */
   svg.board{
     background:var(--beige); border-radius:18px; box-shadow:0 10px 24px rgba(0,0,0,.12);
     width:min(92vw, 680px); height:auto;
@@ -212,7 +212,7 @@
     }
   }
 
-  // ---------- pointer helpers ----------
+  // ---------- pointer math ----------
   function svgPointFromEvent(ev){
     const rect=svg.getBoundingClientRect();
     const vb=svg.viewBox.baseVal;
@@ -240,6 +240,25 @@
     draw();
   }
 
+  // ---------- selection helper (robust for iframes/Canva) ----------
+  function selectAtScreenEvent(ev) {
+    const p = svgPointFromEvent(ev);
+    const snap = (window.innerWidth < 480) ? 64 : 46;
+    // Prefer the highlighted stitch if any
+    if (hoverId != null) {
+      const s1 = stitches.find(st => st.id === hoverId);
+      if (s1) { selectStitch(s1); return; }
+    }
+    // Else choose nearest to event point
+    const { best } = nearestStitch(p.x, p.y, snap);
+    if (best) { selectStitch(best); return; }
+    // Fallback to last known pointer position
+    if (pointerPos) {
+      const { best: best2 } = nearestStitch(pointerPos.x, pointerPos.y, snap);
+      if (best2) selectStitch(best2);
+    }
+  }
+
   // ---------- pointer events (mouse + touch) ----------
   svg.addEventListener('pointerdown',(ev)=>{
     if(ev.isPrimary===false) return;
@@ -261,18 +280,7 @@
     if(ev.isPrimary===false) return;
     isPointerDown=false;
     try { svg.releasePointerCapture(ev.pointerId); } catch(_) {}
-    const p=svgPointFromEvent(ev);
-
-    // 1) If something is highlighted, pick it (most reliable on iOS/iframes)
-    if(hoverId!=null){
-      const s = stitches.find(st=>st.id===hoverId);
-      if(s) selectStitch(s);
-    } else {
-      // 2) Else select nearest with generous radius
-      const snap = (window.innerWidth<480)? 64 : 46;
-      const {best} = nearestStitch(p.x,p.y,snap);
-      if(best) selectStitch(best);
-    }
+    selectAtScreenEvent(ev);   // <— select on lift
     ev.preventDefault();
   },{passive:false});
 
@@ -280,11 +288,22 @@
     pointerPos=null; hoverId=null; draw();
   });
 
+  // Also select on click/tap (extra safety)
+  svg.addEventListener('click', (ev) => {
+    selectAtScreenEvent(ev);
+  });
+
+  // Global pointerup: if Canva/iframe swallows the up, we still finalize selection
+  window.addEventListener('pointerup', (ev) => {
+    if (!running) return;
+    selectAtScreenEvent(ev);
+  }, { passive: false });
+
   // ---------- UI ----------
   startBtn.addEventListener('click',()=>{ if(!running) start(); });
   pauseBtn.addEventListener('click',()=>pause());
-  document.getElementById('btn-close').addEventListener('click',()=>overlay.classList.remove('show'));
-  document.getElementById('btn-again').addEventListener('click',()=>{ overlay.classList.remove('show'); start(); });
+  closeBtn.addEventListener('click',()=>overlay.classList.remove('show'));
+  againBtn.addEventListener('click',()=>{ overlay.classList.remove('show'); start(); });
 
   // init
   genRound(1); running=false; startBtn.style.display='inline-block'; pauseBtn.style.display='none';
