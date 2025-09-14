@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Crochet Round — Spot the SC</title>
+<style>
+  :root{
+    --pink:#E91E63;
+    --gold:#FFD700;
+    --black:#111827;
+    --beige:#f5f5dc;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    font-family: Georgia, "Times New Roman", serif;
+    background-image:url('https://wallpapers.com/images/hd/kate-spade-white-hearts-erxoa1ltp1qmbwnn.jpg');
+    background-size:cover;background-position:center;
+    display:flex;align-items:center;justify-content:center;
+    padding:24px;
+  }
+  .wrap{
+    display:flex;flex-direction:column;align-items:center;gap:16px;
+    max-width:820px;width:100%;
+  }
+  h1{margin:0;color:var(--black);font-size:28px;letter-spacing:.02em}
+  .bar{
+    display:flex;align-items:center;gap:24px;
+    background:#fff;border:2px solid var(--gold);
+    padding:10px 14px;border-radius:14px;box-shadow:0 4px 18px rgba(0,0,0,.08);
+  }
+  .pill{font-weight:700;color:var(--black)}
+  .pill .v{color:var(--pink)}
+  button{
+    background:var(--black);color:#fff;border:2px solid var(--black);
+    border-radius:12px;padding:8px 16px;cursor:pointer;font-weight:700;
+  }
+  button:hover{border-color:var(--gold)}
+  .stage{position:relative;}
+  .tag{
+    position:absolute;top:-28px;left:0;
+    font-size:12px;background:#fff;border:1.5px solid var(--gold);
+    color:var(--black);padding:4px 10px;border-radius:999px;
+    box-shadow:0 2px 8px rgba(0,0,0,.06);
+  }
+  svg.board{
+    background:var(--beige);border-radius:18px;box-shadow:0 10px 24px rgba(0,0,0,.12);
+    touch-action:none;
+  }
+
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;padding:16px}
+  .overlay.show{display:flex}
+  .card{background:#fff;border:3px solid var(--gold);color:var(--black);
+        border-radius:18px;box-shadow:0 12px 28px rgba(0,0,0,.18);padding:20px;max-width:520px;width:100%;text-align:center}
+  .card h2{margin:8px 0 6px 0}
+  .row{display:flex;justify-content:center;gap:12px;margin-top:12px}
+  .note{font-size:12px;max-width:640px;text-align:center;color:var(--black)}
+
+  .spark line,.spark circle{animation:fadeIn .6s ease-out forwards}
+  .spark line{opacity:0}
+  @keyframes fadeIn{to{opacity:1}}
+  .noselect{-webkit-user-select:none;user-select:none}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1 class="noselect">Crochet Round — Spot the SC</h1>
+
+    <div class="bar noselect">
+      <div class="pill">Round <span class="v" id="ui-round">1</span>/<span>5</span></div>
+      <div class="pill">Stitches <span id="ui-count">12</span></div>
+      <button id="btn-start">Start</button>
+      <button id="btn-pause" style="display:none">Pause</button>
+    </div>
+
+    <div class="stage">
+      <div class="tag noselect" id="round-tag">Round 1</div>
+      <svg id="svg" class="board" width="640" height="720"></svg>
+    </div>
+
+    <p class="note">Move the <b>hook</b> over a stitch to highlight it, then click to select. Finish each round to grow the circle. After Round 5, a celebratory message pops up.</p>
+  </div>
+
+  <div id="overlay" class="overlay">
+    <div class="card">
+      <h2>Cat complete! 🐱✨</h2>
+      <p>You finished Round 5 (R1–R5 of the pattern). Beautiful work!</p>
+      <div class="row">
+        <button id="btn-close">Close</button>
+        <button id="btn-again">Play again</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const PINK = "#E91E63";
+  const GOLD = "#FFD700";
+  const BLACK = "#111827";
+  const WIDTH = 640, HEIGHT = 720;
+  const cx = WIDTH/2, cy = 340;
+  const END_ROUND = 5;
+
+  const roundEl = document.getElementById('ui-round');
+  const countEl = document.getElementById('ui-count');
+  const startBtn = document.getElementById('btn-start');
+  const pauseBtn = document.getElementById('btn-pause');
+  const tagEl = document.getElementById('round-tag');
+  const svg = document.getElementById('svg');
+  const overlay = document.getElementById('overlay');
+  const closeBtn = document.getElementById('btn-close');
+  const againBtn = document.getElementById('btn-again');
+
+  let running = false;
+  let round = 1;
+  let stitches = [];
+  let ringR = 160;
+  let hoverId = null;
+  let mouse = null;
+
+  const counts = [0,12,18,24,30,36];
+  function radiusForRound(r){ return 130 + r*8; }
+  function toRad(deg){ return deg*Math.PI/180; }
+  function pointOnRingDeg(deg, r=ringR){ const a=toRad(deg); return {x: cx + r*Math.cos(a), y: cy + r*Math.sin(a)}; }
+  function dist2(x1,y1,x2,y2){ return (x1-x2)**2 + (y1-y2)**2; }
+  function stitchPath(kind){
+    let W=44,H=56;
+    if(kind==='too_wide') W*=1.3;
+    if(kind==='too_shallow') H*=0.75;
+    const bl={x:0,y:0}, tl={x:-W/2,y:-H}, tr={x:W/2,y:-H};
+    return `M ${bl.x} ${bl.y} L ${tl.x} ${tl.y} M ${bl.x} ${bl.y} L ${tr.x} ${tr.y}`;
+  }
+
+  function genRound(r){
+    const c = counts[r] || 36;
+    ringR = radiusForRound(r);
+    stitches = Array.from({length:c}, (_,i)=>{
+      const baseAngle = (360/c)*i - 90 + 5;
+      const rr = Math.random();
+      const kind = rr<0.72 ? 'real' : rr<0.84 ? 'wrong_orient' : rr<0.93 ? 'too_wide' : 'too_shallow';
+      return { id:i, angle:baseAngle, kind, clicked:false };
+    });
+    roundEl.textContent = r;
+    tagEl.textContent = `Round ${r}`;
+    countEl.textContent = c;
+    draw();
+  }
+
+  function start(){
+    round = 1;
+    running = true;
+    startBtn.style.display='none';
+    pauseBtn.style.display='inline-block';
+    hoverId = null;
+    genRound(1);
+  }
+  function pause(){
+    running = false;
+    startBtn.textContent='Resume';
+    startBtn.style.display='inline-block';
+    pauseBtn.style.display='none';
+  }
+
+  function draw(){
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+    svg.appendChild(circle(cx,cy, ringR+70, 'none', GOLD, 2));
+    const inner = circle(cx,cy, ringR-70, 'none', '#f3f4f6', 2);
+    inner.setAttribute('stroke-dasharray','3 8'); svg.appendChild(inner);
+
+    const ordered = [...stitches].sort((a,b)=>a.angle-b.angle);
+    for(const s of ordered){
+      const base = pointOnRingDeg(s.angle, ringR);
+      const inwardDeg = s.angle + 180;
+      const rotDeg = (s.kind==='wrong_orient') ? s.angle+90 : inwardDeg;
+      const d = stitchPath(s.kind);
+      const isHover = hoverId===s.id && !s.clicked;
+      const strokeColor = s.clicked ? (s.kind==='real' ? GOLD : '#F8BBD0') : isHover ? PINK : BLACK;
+      const strokeW = isHover ? 5.5 : 4;
+
+      const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+      g.style.cursor='pointer';
+      const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+      path.setAttribute('d', d);
+      path.setAttribute('transform', `translate(${base.x},${base.y}) rotate(${rotDeg})`);
+      path.setAttribute('fill','none');
+      path.setAttribute('stroke', strokeColor);
+      path.setAttribute('stroke-width', strokeW);
+      path.setAttribute('stroke-linecap','round');
+      if(isHover) path.style.filter = `drop-shadow(0 0 6px ${GOLD})`;
+      g.appendChild(path);
+
+      g.addEventListener('click', ()=>{
+        if(!running || s.clicked) return;
+        s.clicked = true;
+        if(s.kind==='real'){ sparkle(base.x, base.y-18); }
+        checkEnd(); draw();
+      });
+
+      svg.appendChild(g);
+    }
+
+    if(mouse){
+      const img = document.createElementNS('http://www.w3.org/2000/svg','image');
+      img.setAttributeNS('http://www.w3.org/1999/xlink','href','https://athriftynotion.com/cdn/shop/files/SizeNCrochetHook_800x.png?v=1753294266');
+      img.setAttribute('x', mouse.x - 40);
+      img.setAttribute('y', mouse.y - 40);
+      img.setAttribute('width', 100);
+      img.setAttribute('height', 100);
+      img.setAttribute('pointer-events','none');
+      svg.appendChild(img);
+    }
+  }
+
+  function circle(x,y,r,fill,stroke,sw){
+    const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx',x); c.setAttribute('cy',y); c.setAttribute('r',r);
+    c.setAttribute('fill',fill); c.setAttribute('stroke',stroke); c.setAttribute('stroke-width',sw);
+    return c;
+  }
+
+  function sparkle(x,y){
+    const rays = 8, radius = 18;
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','spark');
+    for(let i=0;i<rays;i++){
+      const a = i*2*Math.PI/rays;
+      const x2 = x + radius*Math.cos(a);
+      const y2 = y + radius*Math.sin(a);
+      const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1', x); line.setAttribute('y1', y);
+      line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+      line.setAttribute('stroke', GOLD); line.setAttribute('stroke-width', 2);
+      line.style.animationDelay = (0.03*i)+'s';
+      g.appendChild(line);
+    }
+    const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    dot.setAttribute('cx',x); dot.setAttribute('cy',y); dot.setAttribute('r',4);
+    dot.setAttribute('fill', GOLD); g.appendChild(dot);
+    svg.appendChild(g);
+    setTimeout(()=>{ if(g.parentNode) g.parentNode.removeChild(g); }, 700);
+  }
+
+  function remainingReal(){ return stitches.filter(s=>s.kind==='real' && !s.clicked).length; }
+  function checkEnd(){
+    if(!running) return;
+    if(stitches.length>0 && remainingReal()===0){
+      if(round>=END_ROUND){
+        running=false;
+        startBtn.textContent='Start';
+        startBtn.style.display='inline-block';
+        pauseBtn.style.display='none';
+        overlay.classList.add('show');
+      }else{
+        round++;
+        genRound(round);
+      }
+    }
+  }
+
+  svg.addEventListener('mousemove', (e)=>{
+    const rect = svg.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    mouse = {x:mx, y:my};
+    const SNAP2 = 28*28;
+    let bestId=null, bestD2=Infinity;
+    for(const s of stitches){
+      const base = pointOnRingDeg(s.angle, ringR);
+      const d2 = dist2(mx,my, base.x, base.y);
+      if(d2<bestD2 && d2<SNAP2){ bestD2 = d2; bestId = s.id; }
+    }
+    hoverId = bestId; draw();
+  });
+  svg.addEventListener('mouseleave', ()=>{ mouse=null; hoverId=null; draw(); });
+
+  startBtn.addEventListener('click', ()=>{ if(running) return; start(); });
+  pauseBtn.addEventListener('click', ()=>{ pause(); });
+
+  closeBtn.addEventListener('click', ()=> overlay.classList.remove('show'));
+  againBtn.addEventListener('click', ()=>{ overlay.classList.remove('show'); start(); });
+
+  genRound(1); running=false; startBtn.style.display='inline-block'; pauseBtn.style.display='none';
+})();
+</script>
+</body>
+</html>
