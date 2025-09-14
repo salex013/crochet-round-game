@@ -5,68 +5,36 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Crochet Round — Spot the SC</title>
 <style>
-  :root{
-    --pink:#E91E63;
-    --gold:#FFD700;
-    --black:#111827;
-    --beige:#f5f5dc;
-  }
-  *{box-sizing:border-box}
-  html,body{height:100%;margin:0}
+  :root{ --pink:#E91E63; --gold:#FFD700; --black:#111827; --beige:#f5f5dc; }
+  *{ box-sizing:border-box }
+  html,body{ height:100%; margin:0 }
   body{
     font-family: Georgia, "Times New Roman", serif;
     background-image:url('https://wallpapers.com/images/hd/kate-spade-white-hearts-erxoa1ltp1qmbwnn.jpg');
-    background-size:cover;background-position:center;
-    display:flex;align-items:center;justify-content:center;
-    padding:24px;
+    background-size:cover; background-position:center;
+    display:flex; align-items:center; justify-content:center; padding:24px;
   }
-  .wrap{
-    display:flex;flex-direction:column;align-items:center;gap:16px;
-    max-width:820px;width:100%;
-  }
-  h1{margin:0;color:var(--black);font-size:28px;letter-spacing:.02em}
-  .bar{
-    display:flex;align-items:center;gap:24px;
-    background:#fff;border:2px solid var(--gold);
-    padding:10px 14px;border-radius:14px;box-shadow:0 4px 18px rgba(0,0,0,.08);
-  }
-  .pill{font-weight:700;color:var(--black)}
-  .pill .v{color:var(--pink)}
-  button{
-    background:var(--black);color:#fff;border:2px solid var(--black);
-    border-radius:12px;padding:8px 16px;cursor:pointer;font-weight:700;
-  }
-  button:hover{border-color:var(--gold)}
-  .stage{position:relative;}
-  .tag{
-    position:absolute;top:-28px;left:0;
-    font-size:12px;background:#fff;border:1.5px solid var(--gold);
-    color:var(--black);padding:4px 10px;border-radius:999px;
-    box-shadow:0 2px 8px rgba(0,0,0,.06);
-  }
-  svg.board{
-    background:var(--beige);border-radius:18px;box-shadow:0 10px 24px rgba(0,0,0,.12);
-    /* IMPORTANT for touch: allows us to capture drag without scrolling */
-    touch-action:none;
-  }
-
-  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;padding:16px}
-  .overlay.show{display:flex}
-  .card{background:#fff;border:3px solid var(--gold);color:var(--black);
-        border-radius:18px;box-shadow:0 12px 28px rgba(0,0,0,.18);padding:20px;max-width:520px;width:100%;text-align:center}
-  .card h2{margin:8px 0 6px 0}
-  .row{display:flex;justify-content:center;gap:12px;margin-top:12px}
-  .note{font-size:12px;max-width:640px;text-align:center;color:var(--black)}
-
-  .spark line,.spark circle{animation:fadeIn .6s ease-out forwards}
-  .spark line{opacity:0}
-  @keyframes fadeIn{to{opacity:1}}
-  .noselect{-webkit-user-select:none;user-select:none}
-
-  /* Small screens: tighten the frame a bit */
-  @media (max-width: 480px){
-    h1 { font-size: 22px; }
-  }
+  .wrap{ display:flex; flex-direction:column; align-items:center; gap:16px; max-width:820px; width:100% }
+  h1{ margin:0; color:var(--black); font-size:28px; letter-spacing:.02em }
+  .bar{ display:flex; align-items:center; gap:24px; background:#fff; border:2px solid var(--gold);
+        padding:10px 14px; border-radius:14px; box-shadow:0 4px 18px rgba(0,0,0,.08) }
+  .pill{ font-weight:700; color:var(--black) } .pill .v{ color:var(--pink) }
+  button{ background:var(--black); color:#fff; border:2px solid var(--black); border-radius:12px; padding:8px 16px; cursor:pointer; font-weight:700 }
+  button:hover{ border-color:var(--gold) }
+  .stage{ position:relative } .tag{ position:absolute; top:-28px; left:0; font-size:12px; background:#fff; border:1.5px solid var(--gold);
+        color:var(--black); padding:4px 10px; border-radius:999px; box-shadow:0 2px 8px rgba(0,0,0,.06) }
+  svg.board{ background:var(--beige); border-radius:18px; box-shadow:0 10px 24px rgba(0,0,0,.12);
+             /* critical for touch-drag */
+             touch-action:none; -ms-touch-action:none }
+  .overlay{ position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; padding:16px }
+  .overlay.show{ display:flex }
+  .card{ background:#fff; border:3px solid var(--gold); color:var(--black); border-radius:18px; box-shadow:0 12px 28px rgba(0,0,0,.18);
+         padding:20px; max-width:520px; width:100%; text-align:center }
+  .card h2{ margin:8px 0 6px 0 } .row{ display:flex; justify-content:center; gap:12px; margin-top:12px }
+  .note{ font-size:12px; max-width:640px; text-align:center; color:var(--black) }
+  .spark line,.spark circle{ animation:fadeIn .6s ease-out forwards } .spark line{ opacity:0 } @keyframes fadeIn{ to{opacity:1} }
+  .noselect{ -webkit-user-select:none; user-select:none }
+  @media (max-width: 480px){ h1{ font-size:22px } }
 </style>
 </head>
 <body>
@@ -82,11 +50,11 @@
 
     <div class="stage">
       <div class="tag noselect" id="round-tag">Round 1</div>
-      <!-- For small phones we scale the board down a bit with viewBox -->
       <svg id="svg" class="board" width="640" height="720" viewBox="0 0 640 720" preserveAspectRatio="xMidYMid meet"></svg>
     </div>
 
-    <p class="note">Drag the <b>hook</b> with your finger to hover a stitch, then lift your finger to select. Finish each round to grow the circle. After Round 5, a celebratory message pops up.</p>
+    <p class="note">Drag the <b>hook</b> with your finger to hover a stitch, or just <b>tap</b> near one.
+      Lift your finger to select. Finish each round to grow the circle.</p>
   </div>
 
   <div id="overlay" class="overlay">
@@ -102,12 +70,8 @@
 
 <script>
 (function(){
-  const PINK = "#E91E63";
-  const GOLD = "#FFD700";
-  const BLACK = "#111827";
-  const WIDTH = 640, HEIGHT = 720;
-  const cx = WIDTH/2, cy = 340;
-  const END_ROUND = 5;
+  const PINK="#E91E63", GOLD="#FFD700", BLACK="#111827";
+  const WIDTH=640, HEIGHT=720, cx=WIDTH/2, cy=340, END_ROUND=5;
 
   const roundEl = document.getElementById('ui-round');
   const countEl = document.getElementById('ui-count');
@@ -119,21 +83,15 @@
   const closeBtn = document.getElementById('btn-close');
   const againBtn = document.getElementById('btn-again');
 
-  let running = false;
-  let round = 1;
-  let stitches = [];
-  let ringR = 160;
+  let running=false, round=1, stitches=[], ringR=160;
+  let hoverId=null, pointerPos=null, isPointerDown=false;
 
-  // Pointer/hover state
-  let hoverId = null;
-  let pointerPos = null;      // {x, y} in SVG coords
-  let isPointerDown = false;  // so we only "select" on lift for touch
+  const counts=[0,12,18,24,30,36];
+  const toRad=d=>d*Math.PI/180;
+  const pointOnRingDeg=(deg,r=ringR)=>({x:cx+r*Math.cos(toRad(deg)), y:cy+r*Math.sin(toRad(deg))});
+  const dist2=(x1,y1,x2,y2)=> (x1-x2)**2+(y1-y2)**2;
+  const radiusForRound=r=>130+r*8;
 
-  const counts = [0,12,18,24,30,36];
-  function radiusForRound(r){ return 130 + r*8; }
-  function toRad(deg){ return deg*Math.PI/180; }
-  function pointOnRingDeg(deg, r=ringR){ const a=toRad(deg); return {x: cx + r*Math.cos(a), y: cy + r*Math.sin(a)}; }
-  function dist2(x1,y1,x2,y2){ return (x1-x2)**2 + (y1-y2)**2; }
   function stitchPath(kind){
     let W=44,H=56;
     if(kind==='too_wide') W*=1.3;
@@ -143,84 +101,30 @@
   }
 
   function genRound(r){
-    const c = counts[r] || 36;
+    const c=counts[r]||36;
     ringR = radiusForRound(r);
-    stitches = Array.from({length:c}, (_,i)=>{
-      const baseAngle = (360/c)*i - 90 + 5;
-      const rr = Math.random();
-      const kind = rr<0.72 ? 'real' : rr<0.84 ? 'wrong_orient' : rr<0.93 ? 'too_wide' : 'too_shallow';
-      return { id:i, angle:baseAngle, kind, clicked:false };
+    stitches = Array.from({length:c},(_,i)=>{
+      const a=(360/c)*i - 90 + 5;
+      const rr=Math.random();
+      const kind = rr<0.72?'real' : rr<0.84?'wrong_orient' : rr<0.93?'too_wide':'too_shallow';
+      return {id:i, angle:a, kind, clicked:false};
     });
-    roundEl.textContent = r;
-    tagEl.textContent = `Round ${r}`;
-    countEl.textContent = c;
+    roundEl.textContent=r;
+    tagEl.textContent=`Round ${r}`;
+    countEl.textContent=c;
     draw();
   }
 
   function start(){
-    round = 1;
-    running = true;
-    startBtn.style.display='none';
-    pauseBtn.style.display='inline-block';
-    hoverId = null;
+    round=1; running=true; hoverId=null; pointerPos=null;
+    startBtn.style.display='none'; pauseBtn.style.display='inline-block';
     genRound(1);
   }
   function pause(){
-    running = false;
+    running=false;
     startBtn.textContent='Resume';
     startBtn.style.display='inline-block';
     pauseBtn.style.display='none';
-  }
-
-  function draw(){
-    while(svg.firstChild) svg.removeChild(svg.firstChild);
-    // rings
-    svg.appendChild(circle(cx,cy, ringR+70, 'none', GOLD, 2));
-    const inner = circle(cx,cy, ringR-70, 'none', '#f3f4f6', 2);
-    inner.setAttribute('stroke-dasharray','3 8'); svg.appendChild(inner);
-
-    const ordered = [...stitches].sort((a,b)=>a.angle-b.angle);
-    for(const s of ordered){
-      const base = pointOnRingDeg(s.angle, ringR);
-      const inwardDeg = s.angle + 180;
-      const rotDeg = (s.kind==='wrong_orient') ? s.angle+90 : inwardDeg;
-      const d = stitchPath(s.kind);
-      const isHover = hoverId===s.id && !s.clicked;
-      const strokeColor = s.clicked ? (s.kind==='real' ? GOLD : '#F8BBD0') : isHover ? PINK : BLACK;
-      const strokeW = isHover ? 5.5 : 4;
-
-      const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-      g.style.cursor='pointer';
-      const path = document.createElementNS('http://www.w3.org/2000/svg','path');
-      path.setAttribute('d', d);
-      path.setAttribute('transform', `translate(${base.x},${base.y}) rotate(${rotDeg})`);
-      path.setAttribute('fill','none');
-      path.setAttribute('stroke', strokeColor);
-      path.setAttribute('stroke-width', strokeW);
-      path.setAttribute('stroke-linecap','round');
-      if(isHover) path.style.filter = `drop-shadow(0 0 6px ${GOLD})`;
-      g.appendChild(path);
-
-      // Legacy mouse click (desktop)
-      g.addEventListener('click', ()=>selectStitch(s));
-
-      svg.appendChild(g);
-    }
-
-    // Crochet hook image follows pointer/touch
-    if(pointerPos){
-      const img = document.createElementNS('http://www.w3.org/2000/svg','image');
-      img.setAttributeNS('http://www.w3.org/1999/xlink','href','https://athriftynotion.com/cdn/shop/files/SizeNCrochetHook_800x.png?v=1753294266');
-      // slightly bigger on small devices
-      const hookW = window.innerWidth < 420 ? 110 : 100;
-      const hookH = hookW;
-      img.setAttribute('x', pointerPos.x - 40);
-      img.setAttribute('y', pointerPos.y - 40);
-      img.setAttribute('width', hookW);
-      img.setAttribute('height', hookH);
-      img.setAttribute('pointer-events','none');
-      svg.appendChild(img);
-    }
   }
 
   function circle(x,y,r,fill,stroke,sw){
@@ -231,25 +135,18 @@
   }
 
   function sparkle(x,y){
-    const rays = 8, radius = 18;
-    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-    g.setAttribute('class','spark');
+    const rays=8, radius=18;
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g'); g.setAttribute('class','spark');
     for(let i=0;i<rays;i++){
-      const a = i*2*Math.PI/rays;
-      const x2 = x + radius*Math.cos(a);
-      const y2 = y + radius*Math.sin(a);
-      const line = document.createElementNS('http://www.w3.org/2000/svg','line');
-      line.setAttribute('x1', x); line.setAttribute('y1', y);
-      line.setAttribute('x2', x2); line.setAttribute('y2', y2);
-      line.setAttribute('stroke', GOLD); line.setAttribute('stroke-width', 2);
-      line.style.animationDelay = (0.03*i)+'s';
-      g.appendChild(line);
+      const a = i*2*Math.PI/rays, x2=x+radius*Math.cos(a), y2=y+radius*Math.sin(a);
+      const ln=document.createElementNS('http://www.w3.org/2000/svg','line');
+      ln.setAttribute('x1',x); ln.setAttribute('y1',y); ln.setAttribute('x2',x2); ln.setAttribute('y2',y2);
+      ln.setAttribute('stroke',GOLD); ln.setAttribute('stroke-width',2);
+      ln.style.animationDelay=(0.03*i)+'s'; g.appendChild(ln);
     }
-    const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
-    dot.setAttribute('cx',x); dot.setAttribute('cy',y); dot.setAttribute('r',4);
-    dot.setAttribute('fill', GOLD); g.appendChild(dot);
-    svg.appendChild(g);
-    setTimeout(()=>{ if(g.parentNode) g.parentNode.removeChild(g); }, 700);
+    const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    dot.setAttribute('cx',x); dot.setAttribute('cy',y); dot.setAttribute('r',4); dot.setAttribute('fill',GOLD); g.appendChild(dot);
+    svg.appendChild(g); setTimeout(()=>g.remove(),700);
   }
 
   function remainingReal(){ return stitches.filter(s=>s.kind==='real' && !s.clicked).length; }
@@ -257,92 +154,123 @@
     if(!running) return;
     if(stitches.length>0 && remainingReal()===0){
       if(round>=END_ROUND){
-        running=false;
-        startBtn.textContent='Start';
-        startBtn.style.display='inline-block';
-        pauseBtn.style.display='none';
+        running=false; startBtn.textContent='Start'; startBtn.style.display='inline-block'; pauseBtn.style.display='none';
         overlay.classList.add('show');
-      }else{
-        round++;
-        genRound(round);
-      }
+      } else { round++; genRound(round); }
     }
   }
 
   function selectStitch(s){
     if(!running || s.clicked) return;
-    s.clicked = true;
-    if(s.kind==='real'){
-      const base = pointOnRingDeg(s.angle, ringR);
-      sparkle(base.x, base.y - 18);
-    }
-    checkEnd(); draw();
+    s.clicked=true;
+    if(s.kind==='real'){ const b=pointOnRingDeg(s.angle, ringR); sparkle(b.x, b.y-18); }
+    draw(); checkEnd();
   }
 
-  // ---------- Pointer Events (mouse + touch) ----------
+  // ---------- drawing ----------
+  function draw(){
+    while(svg.firstChild) svg.firstChild.remove();
+    svg.appendChild(circle(cx,cy, ringR+70,'none',GOLD,2));
+    const inner=circle(cx,cy, ringR-70,'none','#f3f4f6',2); inner.setAttribute('stroke-dasharray','3 8'); svg.appendChild(inner);
+
+    const ordered=[...stitches].sort((a,b)=>a.angle-b.angle);
+    for(const s of ordered){
+      const base=pointOnRingDeg(s.angle, ringR);
+      const inwardDeg=s.angle+180;
+      const rotDeg=(s.kind==='wrong_orient')? s.angle+90 : inwardDeg;
+      const d=stitchPath(s.kind);
+      const isHover=(hoverId===s.id) && !s.clicked;
+      const strokeColor = s.clicked ? (s.kind==='real'?GOLD:'#F8BBD0') : isHover?PINK:BLACK;
+      const strokeW = isHover ? 5.5 : 4;
+
+      const g=document.createElementNS('http://www.w3.org/2000/svg','g'); g.style.cursor='pointer';
+      const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+      path.setAttribute('d',d);
+      path.setAttribute('transform',`translate(${base.x},${base.y}) rotate(${rotDeg})`);
+      path.setAttribute('fill','none'); path.setAttribute('stroke',strokeColor);
+      path.setAttribute('stroke-width',strokeW); path.setAttribute('stroke-linecap','round');
+      if(isHover) path.style.filter=`drop-shadow(0 0 6px ${GOLD})`;
+      // desktop click fallback
+      g.addEventListener('click',()=>selectStitch(s));
+      svg.appendChild(g); g.appendChild(path);
+    }
+
+    if(pointerPos){
+      const img=document.createElementNS('http://www.w3.org/2000/svg','image');
+      img.setAttributeNS('http://www.w3.org/1999/xlink','href','https://athriftynotion.com/cdn/shop/files/SizeNCrochetHook_800x.png?v=1753294266');
+      const hookW = (window.innerWidth<420)? 110:100, hookH=hookW;
+      img.setAttribute('x',pointerPos.x-40); img.setAttribute('y',pointerPos.y-40);
+      img.setAttribute('width',hookW); img.setAttribute('height',hookH);
+      img.setAttribute('pointer-events','none'); svg.appendChild(img);
+    }
+  }
+
+  // ---------- pointer helpers ----------
   function svgPointFromEvent(ev){
-    const rect = svg.getBoundingClientRect();
-    // account for viewBox scaling
-    const scaleX = svg.viewBox.baseVal.width ? (svg.viewBox.baseVal.width / rect.width) : 1;
-    const scaleY = svg.viewBox.baseVal.height ? (svg.viewBox.baseVal.height / rect.height) : 1;
-    const x = (ev.clientX - rect.left) * scaleX;
-    const y = (ev.clientY - rect.top) * scaleY;
+    const rect=svg.getBoundingClientRect();
+    const vb=svg.viewBox.baseVal;
+    const scaleX = vb && vb.width ? (vb.width/rect.width) : 1;
+    const scaleY = vb && vb.height? (vb.height/rect.height): 1;
+    const x=(ev.clientX-rect.left)*scaleX;
+    const y=(ev.clientY-rect.top)*scaleY;
     return {x,y};
   }
 
-  function updateHover(mx,my){
-    pointerPos = {x:mx, y:my};
-    const SNAP2 = (window.innerWidth < 420 ? 34 : 28) ** 2; // larger snap on phones
-    let bestId=null, bestD2=Infinity;
+  function nearestStitch(mx,my, snapPx){
+    const snap2=snapPx*snapPx;
+    let best=null, bestD2=Infinity;
     for(const s of stitches){
-      const base = pointOnRingDeg(s.angle, ringR);
-      const d2 = dist2(mx,my, base.x, base.y);
-      if(d2<bestD2 && d2<SNAP2){ bestD2 = d2; bestId = s.id; }
+      const b=pointOnRingDeg(s.angle, ringR);
+      const d2=dist2(mx,my,b.x,b.y);
+      if(d2<bestD2){ bestD2=d2; best=s; }
     }
-    hoverId = bestId;
+    return (bestD2<=snap2)? best : null;
+  }
+
+  function updateHover(mx,my){
+    pointerPos={x:mx,y:my};
+    const snap = (window.innerWidth<420)? 40 : 30;   // bigger target on phones
+    const near = nearestStitch(mx,my,snap);
+    hoverId = near ? near.id : null;
     draw();
   }
 
-  svg.addEventListener('pointerdown', (ev)=>{
-    // Only track primary pointer (finger or mouse button)
-    if(ev.isPrimary === false) return;
-    isPointerDown = true;
-    const p = svgPointFromEvent(ev);
-    updateHover(p.x, p.y);
-    // prevent page scroll/zoom during drag on touch
-    ev.preventDefault();
-  }, {passive:false});
+  // ---------- pointer events (mouse + touch) ----------
+  svg.addEventListener('pointerdown',(ev)=>{
+    if(ev.isPrimary===false) return;
+    isPointerDown=true;
+    const p=svgPointFromEvent(ev);
+    updateHover(p.x,p.y);
+    ev.preventDefault();   // stop page scroll
+  },{passive:false});
 
-  svg.addEventListener('pointermove', (ev)=>{
-    if(ev.isPrimary === false) return;
-    const p = svgPointFromEvent(ev);
-    updateHover(p.x, p.y);
+  svg.addEventListener('pointermove',(ev)=>{
+    if(ev.isPrimary===false) return;
+    const p=svgPointFromEvent(ev);
+    updateHover(p.x,p.y);
     if(isPointerDown) ev.preventDefault();
-  }, {passive:false});
+  },{passive:false});
 
-  svg.addEventListener('pointerup', (ev)=>{
-    if(ev.isPrimary === false) return;
-    isPointerDown = false;
-    // On lift: if we’re over a stitch, select it (touch-friendly)
-    if(hoverId != null){
-      const s = stitches.find(st=>st.id===hoverId);
-      if(s) selectStitch(s);
-    }
+  svg.addEventListener('pointerup',(ev)=>{
+    if(ev.isPrimary===false) return;
+    isPointerDown=false;
+    const p=svgPointFromEvent(ev);
+    // NEW: select the nearest stitch even if hoverId didn't set
+    const snap = (window.innerWidth<420)? 46 : 34;   // generous tap radius
+    const target = nearestStitch(p.x,p.y,snap);
+    if(target) selectStitch(target);
     ev.preventDefault();
-  }, {passive:false});
+  },{passive:false});
 
-  svg.addEventListener('pointerleave', ()=>{
-    pointerPos = null;
-    hoverId = null;
-    draw();
+  svg.addEventListener('pointerleave',()=>{
+    pointerPos=null; hoverId=null; draw();
   });
 
-  // ---------- UI buttons ----------
-  startBtn.addEventListener('click', ()=>{ if(running) return; start(); });
-  pauseBtn.addEventListener('click', ()=>{ pause(); });
-
-  document.getElementById('btn-close').addEventListener('click', ()=> overlay.classList.remove('show'));
-  document.getElementById('btn-again').addEventListener('click', ()=>{ overlay.classList.remove('show'); start(); });
+  // ---------- UI ----------
+  startBtn.addEventListener('click',()=>{ if(!running) start(); });
+  pauseBtn.addEventListener('click',()=>pause());
+  closeBtn.addEventListener('click',()=>overlay.classList.remove('show'));
+  againBtn.addEventListener('click',()=>{ overlay.classList.remove('show'); start(); });
 
   // init
   genRound(1); running=false; startBtn.style.display='inline-block'; pauseBtn.style.display='none';
