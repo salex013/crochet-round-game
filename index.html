@@ -9,7 +9,6 @@
   *{ box-sizing:border-box }
   html,body{ height:100%; margin:0 }
   body{
-    /* allow scroll if it ever needs a little extra */
     overflow:auto;
     font-family: Georgia, "Times New Roman", serif;
     background-image:url('https://wallpapers.com/images/hd/kate-spade-white-hearts-erxoa1ltp1qmbwnn.jpg');
@@ -39,21 +38,16 @@
   .tag{ position:absolute; top:-26px; left:8px; font-size:12px; background:#fff; border:1.5px solid var(--gold);
         color:var(--black); padding:4px 10px; border-radius:999px; box-shadow:0 2px 8px rgba(0,0,0,.06) }
 
-  /* --- NEVER CLIP, same look phone/desktop --- */
+  /* The board’s *width* is controlled by JS for perfect fit. Height follows aspect-ratio. */
   svg.board{
-    aspect-ratio: 640 / 720;          /* keep exact proportion */
-    /* cap by width, by height (using svh), and by a max pixel size */
-    width: min(
-      92vw,
-      calc(92svh * (640 / 720)),
-      720px
-    );
+    aspect-ratio: 640 / 720;     /* exact proportion */
+    width: 600px;                /* placeholder; JS will set a precise width */
     height: auto;
     background: var(--beige);
     border-radius: 18px;
     box-shadow: 0 10px 24px rgba(0,0,0,.12);
     touch-action: none; -ms-touch-action: none;
-    overflow: visible; /* glow/hook never looks clipped */
+    overflow: visible;
   }
 
   .overlay{ position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; padding:16px }
@@ -69,22 +63,22 @@
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1 class="noselect">Crochet Round — Spot the SC</h1>
+  <div class="wrap" id="wrap">
+    <h1 class="noselect" id="title">Crochet Round — Spot the SC</h1>
 
-    <div class="bar noselect">
+    <div class="bar noselect" id="bar">
       <div class="pill">Round <span class="v" id="ui-round">1</span>/<span>5</span></div>
       <div class="pill">Stitches <span id="ui-count">12</span></div>
       <button id="btn-start">Start</button>
       <button id="btn-pause" style="display:none">Pause</button>
     </div>
 
-    <div class="stage">
+    <div class="stage" id="stage">
       <div class="tag noselect" id="round-tag">Round 1</div>
       <svg id="svg" class="board" width="640" height="720" viewBox="0 0 640 720" preserveAspectRatio="xMidYMid meet"></svg>
     </div>
 
-    <p class="note">Drag the <b>hook</b> with your finger to highlight a stitch, or just <b>tap</b> near one.
+    <p class="note" id="note">Drag the <b>hook</b> with your finger to highlight a stitch, or just <b>tap</b> near one.
       Lift your finger (or dwell briefly) to select. Finishing all “V” stitches advances the round.</p>
   </div>
 
@@ -102,8 +96,9 @@
 <script>
 (function(){
   const PINK="#E91E63", GOLD="#FFD700", BLACK="#111827";
-  const WIDTH=640, HEIGHT=720, cx=WIDTH/2, cy=340, END_ROUND=5;
+  const WIDTH=640, HEIGHT=720, RATIO=WIDTH/HEIGHT, cx=WIDTH/2, cy=340, END_ROUND=5;
 
+  // elements
   const roundEl = document.getElementById('ui-round');
   const countEl = document.getElementById('ui-count');
   const startBtn = document.getElementById('btn-start');
@@ -113,7 +108,54 @@
   const overlay = document.getElementById('overlay');
   const closeBtn = document.getElementById('btn-close');
   const againBtn = document.getElementById('btn-again');
+  const titleEl = document.getElementById('title');
+  const barEl = document.getElementById('bar');
+  const noteEl = document.getElementById('note');
+  const stageEl = document.getElementById('stage');
+  const wrapEl = document.getElementById('wrap');
 
+  // ----- smart sizing so NOTHING clips on desktop or phone -----
+  function sizeBoard(){
+    // Horizontal cap
+    const maxByWidth = Math.min(wrapEl.clientWidth, window.innerWidth*0.92, 1000);
+
+    // Vertical cap: available height minus everything above/below the board
+    const bodyPadTop = parseFloat(getComputedStyle(document.body).paddingTop) || 0;
+    const bodyPadBottom = parseFloat(getComputedStyle(document.body).paddingBottom) || 0;
+
+    const above = titleEl.getBoundingClientRect().height + 8
+                + barEl.getBoundingClientRect().height + 14
+                + 26; // little space for the round tag
+
+    const below = 12 + noteEl.getBoundingClientRect().height;
+
+    // Use small viewport height when supported
+    const viewH = Math.min(
+      (window.innerHeight || 0),
+      (window.visualViewport ? window.visualViewport.height : window.innerHeight || 0)
+    );
+
+    const availH = Math.max(0,
+      viewH - (bodyPadTop + bodyPadBottom + above + below)
+    );
+
+    // Width that would fit within the available height, respecting aspect ratio
+    const maxByHeight = availH * RATIO;
+
+    // Final width: min of horizontal limit, vertical limit, and a hard max pixel size
+    const finalW = Math.max(280, Math.min(maxByWidth, maxByHeight, 780)); // 780px hard cap looks great on desktop
+    svg.style.width = finalW + 'px';
+  }
+
+  // Resize on load, resize, orientation, font load jitter
+  window.addEventListener('load', sizeBoard);
+  window.addEventListener('resize', sizeBoard);
+  window.addEventListener('orientationchange', ()=>setTimeout(sizeBoard, 50));
+  // in case fonts/layout shift after paint
+  setTimeout(sizeBoard, 100);
+  setTimeout(sizeBoard, 400);
+
+  // ----- game logic (unchanged selection improvements) -----
   let running=false, round=1, stitches=[], ringR=160;
   let hoverId=null, pointerPos=null, isPointerDown=false;
   let dwellTimer=null, lastDownHover=null;
@@ -145,6 +187,7 @@
     tagEl.textContent=`Round ${r}`;
     countEl.textContent=c;
     draw();
+    sizeBoard();
   }
 
   function start(){
@@ -200,7 +243,6 @@
     draw(); checkEnd();
   }
 
-  // ---------- drawing ----------
   function draw(){
     while(svg.firstChild) svg.firstChild.remove();
     svg.appendChild(circle(cx,cy, ringR+70,'none',GOLD,2));
@@ -227,7 +269,6 @@
       svg.appendChild(g); g.appendChild(path);
     }
 
-    // crochet hook image
     if(pointerPos){
       const img=document.createElementNS('http://www.w3.org/2000/svg','image');
       img.setAttributeNS('http://www.w3.org/1999/xlink','href','https://athriftynotion.com/cdn/shop/files/SizeNCrochetHook_800x.png?v=1753294266');
@@ -238,16 +279,15 @@
     }
   }
 
-  // ---------- pointer math ----------
-  function svgPointFromEvent(ev){
+  // pointer helpers
+  const svgPointFromEvent=(ev)=>{
     const rect=svg.getBoundingClientRect();
     const vb=svg.viewBox.baseVal;
     const scaleX = vb.width/rect.width;
     const scaleY = vb.height/rect.height;
     return { x:(ev.clientX-rect.left)*scaleX, y:(ev.clientY-rect.top)*scaleY };
-  }
-
-  function nearestStitch(mx,my, snapPx){
+  };
+  const nearestStitch=(mx,my,snapPx)=>{
     const snap2=snapPx*snapPx;
     let best=null, bestD2=Infinity;
     for(const s of stitches){
@@ -256,37 +296,31 @@
       if(d2<bestD2){ bestD2=d2; best=s; }
     }
     return {best, bestD2, within: bestD2<=snap2};
-  }
-
+  };
   function updateHover(mx,my){
     pointerPos={x:mx,y:my};
-    const snap = (window.innerWidth<480)? 58 : 38;   // highlight zone
+    const snap = (window.innerWidth<480)? 58 : 38;
     const {best, within} = nearestStitch(mx,my,snap);
     hoverId = within && best ? best.id : (best ? best.id : null);
     draw();
   }
-
-  // ---------- robust selection on pointerup ----------
   function selectAtScreenEvent(ev) {
     if (!running) return;
-    // 1) if we have a hover, take it
     if (hoverId != null) {
       const s1 = stitches.find(st => st.id === hoverId);
       if (s1) { selectStitch(s1); return; }
     }
-    // 2) otherwise choose nearest to event point with generous snap
     const p = svgPointFromEvent(ev);
     const generous = (window.innerWidth < 480) ? 85 : 50;
     const { best } = nearestStitch(p.x, p.y, generous);
     if (best) { selectStitch(best); return; }
-    // 3) last resort: choose nearest to the last pointerPos
     if (pointerPos) {
       const { best: best2 } = nearestStitch(pointerPos.x, pointerPos.y, generous);
       if (best2) selectStitch(best2);
     }
   }
 
-  // ---------- dwell-to-select ----------
+  // dwell-to-select
   function startDwell(){
     clearTimeout(dwellTimer);
     lastDownHover = hoverId;
@@ -299,7 +333,8 @@
   }
   function cancelDwell(){ clearTimeout(dwellTimer); dwellTimer=null; }
 
-  // ---------- pointer events ----------
+  // pointer events
+  let isPointerDown=false;
   svg.addEventListener('pointerdown',(ev)=>{
     if(ev.isPrimary===false) return;
     isPointerDown=true;
@@ -336,13 +371,13 @@
   window.addEventListener('pointerup', (ev) => { selectAtScreenEvent(ev); }, { passive:false });
   document.addEventListener('pointerup', (ev) => { selectAtScreenEvent(ev); }, { passive:false });
 
-  // ---------- UI ----------
+  // UI
   startBtn.addEventListener('click',()=>{ if(!running) start(); });
   pauseBtn.addEventListener('click',()=>pause());
   closeBtn.addEventListener('click',()=>overlay.classList.remove('show'));
   againBtn.addEventListener('click',()=>{ overlay.classList.remove('show'); start(); });
 
-  // init state
+  // init
   genRound(1); running=false; startBtn.style.display='inline-block'; pauseBtn.style.display='none';
 })();
 </script>
