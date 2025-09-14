@@ -1,367 +1,364 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
 <title>Crochet Round — Spot the SC</title>
 <style>
-  :root{ --pink:#E91E63; --gold:#FFD700; --black:#111827; --beige:#f5f5dc; }
-  *{ box-sizing:border-box }
-  html,body{ height:100%; margin:0 }
+  :root{
+    --pink:#e91e63; --gold:#ffd700; --black:#111827; --beige:#f5f5dc;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
   body{
-    font-family: Georgia, "Times New Roman", serif;
+    font-family: Georgia,"Times New Roman",serif;
     background-image:url('https://wallpapers.com/images/hd/kate-spade-white-hearts-erxoa1ltp1qmbwnn.jpg');
-    background-size:cover; background-position:center;
-    display:flex; align-items:center; justify-content:center;
-    padding: clamp(10px, 2.5vmin, 28px);
-    padding-left: max(10px, env(safe-area-inset-left));
-    padding-right:max(10px, env(safe-area-inset-right));
-    padding-top:  max(10px, env(safe-area-inset-top));
-    padding-bottom:max(10px, env(safe-area-inset-bottom));
-    overflow:auto;
+    background-size:cover;background-position:center;
+    display:flex;align-items:flex-start;justify-content:center;
   }
-
-  .wrap{ width:100%; max-width:900px; display:flex; flex-direction:column; align-items:center; gap:14px; }
-
-  h1{ margin:0; color:var(--black); font-size:26px; letter-spacing:.02em; text-align:center }
-  @media (max-width:480px){ h1{ font-size:20px } }
-
-  .bar{ display:flex; flex-wrap:wrap; align-items:center; gap:14px; background:#fff;
-        border:2px solid var(--gold); padding:8px 12px; border-radius:14px; box-shadow:0 4px 18px rgba(0,0,0,.08) }
-  .pill{ font-weight:700; color:var(--black); font-size:14px } .pill .v{ color:var(--pink) }
-  button{ background:var(--black); color:#fff; border:2px solid var(--black); border-radius:12px; padding:8px 14px; cursor:pointer; font-weight:700 }
-  button:hover{ border-color:var(--gold) }
-
-  .stage{ position:relative; width:100%; display:flex; justify-content:center; }
-
-  /* Board: height follows aspect ratio; JS only sets width */
-  svg.board{
-    aspect-ratio: 640 / 720;
-    width: 600px;   /* placeholder; JS will set the real width */
-    height: auto;
-    background: var(--beige);
-    border-radius: 18px;
-    box-shadow: 0 10px 24px rgba(0,0,0,.12);
-    touch-action: none;
+  .wrap{
+    width:min(92vw,1000px);
+    margin:clamp(12px,2.5vh,20px) auto 40px;
   }
-
-  .tag{
-    position:absolute; top:8px; left:12px;
-    font-size:12px; background:#fff; border:1.5px solid var(--gold);
-    color:var(--black); padding:4px 10px; border-radius:999px;
-    box-shadow:0 2px 8px rgba(0,0,0,.06)
+  .hud{
+    display:flex;gap:12px;align-items:center;justify-content:center;
+    background:#fff;padding:10px 12px;border-radius:14px;
+    border:2px solid var(--gold); box-shadow:0 6px 18px rgba(0,0,0,.06);
   }
-
-  .overlay{ position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; padding:16px }
-  .overlay.show{ display:flex }
-  .card{ background:#fff; border:3px solid var(--gold); color:var(--black); border-radius:18px; box-shadow:0 12px 28px rgba(0,0,0,.18);
-         padding:20px; max-width:520px; width:100%; text-align:center }
-  .card h2{ margin:8px 0 6px } .row{ display:flex; justify-content:center; gap:12px; margin-top:12px }
-
-  .note{ font-size:12px; max-width:640px; text-align:center; color:var(--black) }
-  .spark line,.spark circle{ animation:fadeIn .6s ease-out forwards } .spark line{ opacity:0 } @keyframes fadeIn{ to{opacity:1} }
-  .noselect{ -webkit-user-select:none; user-select:none }
+  .chip{font-weight:700;color:var(--black)}
+  .btn{
+    border:2px solid var(--black); background:var(--black); color:#fff;
+    border-radius:12px; padding:8px 14px; font-weight:600; cursor:pointer;
+  }
+  .btn:active{transform:translateY(1px)}
+  .stage{
+    position:relative; margin:18px auto 0;
+    border-radius:22px; background:var(--beige);
+    box-shadow:0 10px 28px rgba(0,0,0,.10);
+    /* The square scales but never exceeds the wrapper width */
+    width:100%; aspect-ratio:1/1;
+    overflow:hidden; /* ensures nothing spills and top isn't cut */
+  }
+  .round-tag{
+    position:absolute; top:8px; left:8px; z-index:4;
+    background:#fff; border:1.5px solid var(--gold); color:var(--black);
+    font-size:12px; padding:4px 10px; border-radius:999px;
+    box-shadow:0 2px 8px rgba(0,0,0,.05);
+  }
+  .overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.4);
+    display:none; align-items:center; justify-content:center; padding:16px;
+  }
+  .overlay.show{display:flex}
+  .card{
+    background:#fff; color:var(--black);
+    border-radius:18px; border:3px solid var(--gold);
+    padding:22px; width:min(92vw,520px); text-align:center;
+    box-shadow:0 18px 38px rgba(0,0,0,.18);
+  }
+  .card .row{margin-top:14px; display:flex; gap:10px; justify-content:center}
+  .small-note{font-size:12px; color:#333; text-align:center; margin-top:10px}
+  /* Sparkle */
+  .spark line{stroke:var(--gold); stroke-width:2}
+  .spark{animation:pop .6s ease-out forwards}
+  @keyframes pop{ from{transform:scale(.1); opacity:.0} to{transform:scale(1); opacity:1} }
 </style>
 </head>
 <body>
-  <div class="wrap" id="wrap">
-    <h1 class="noselect" id="title">Crochet Round — Spot the SC</h1>
-
-    <div class="bar noselect" id="bar">
-      <div class="pill">Round <span class="v" id="ui-round">1</span>/<span>5</span></div>
-      <div class="pill">Stitches <span id="ui-count">12</span></div>
-      <button id="btn-start">Start</button>
-      <button id="btn-pause" style="display:none">Pause</button>
+  <div class="wrap">
+    <div class="hud" id="hud">
+      <div class="chip">Round <span id="roundNow" style="color:var(--pink)">1</span>/5</div>
+      <div class="chip">Stitches <span id="stCount">12</span></div>
+      <button class="btn" id="startBtn">Start</button>
+      <button class="btn" id="pauseBtn" style="display:none">Pause</button>
     </div>
 
     <div class="stage" id="stage">
-      <div class="tag noselect" id="round-tag">Round 1</div>
-      <svg id="svg" class="board" width="640" height="720" viewBox="0 0 640 720" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="round-tag" id="roundTag">Round 1</div>
+      <!-- responsive SVG fills the square -->
+      <svg id="svg" viewBox="0 0 1000 1000" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+        <!-- rings are injected by JS -->
+      </svg>
     </div>
 
-    <p class="note" id="note">Drag the <b>hook</b> with your finger to highlight a stitch, or just <b>tap</b> near one.
-      Lift your finger (or dwell briefly) to select. Finishing all “V” stitches advances the round.</p>
+    <p class="small-note">
+      Move/drag the <b>hook</b> over a stitch to highlight it. On phone, the stitch
+      selects the moment the hook touches it. Finish R1–R5 to complete the cat base.
+    </p>
   </div>
 
-  <div id="overlay" class="overlay">
+  <div class="overlay" id="endOverlay" aria-hidden="true">
     <div class="card">
       <h2>Cat complete! 🐱✨</h2>
-      <p>You finished Round 5 (R1–R5). Beautiful work!</p>
+      <p>You finished Round 5. Beautiful work!</p>
       <div class="row">
-        <button id="btn-close">Close</button>
-        <button id="btn-again">Play again</button>
+        <button class="btn" id="closeEnd">Close</button>
+        <button class="btn" id="againEnd">Play again</button>
       </div>
     </div>
   </div>
 
 <script>
-(function(){
+(() => {
   // ---------- constants ----------
-  const PINK="#E91E63", GOLD="#FFD700", BLACK="#111827";
-  const WIDTH=640, HEIGHT=720, RATIO=WIDTH/HEIGHT, cx=WIDTH/2, cy=340, END_ROUND=5;
-
-  // ---------- els ----------
-  const roundEl = document.getElementById('ui-round');
-  const countEl = document.getElementById('ui-count');
-  const startBtn = document.getElementById('btn-start');
-  const pauseBtn = document.getElementById('btn-pause');
-  const tagEl = document.getElementById('round-tag');
+  const GOLD = getCss('--gold'), BLACK = getCss('--black'), PINK = getCss('--pink');
   const svg = document.getElementById('svg');
-  const overlay = document.getElementById('overlay');
-  const closeBtn = document.getElementById('btn-close');
-  const againBtn = document.getElementById('btn-again');
-  const titleEl = document.getElementById('title');
-  const barEl = document.getElementById('bar');
-  const noteEl = document.getElementById('note');
-  const wrapEl = document.getElementById('wrap');
+  const stage = document.getElementById('stage');
+  const stCountEl = document.getElementById('stCount');
+  const roundNowEl = document.getElementById('roundNow');
+  const roundTag = document.getElementById('roundTag');
+  const startBtn = document.getElementById('startBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const endOverlay = document.getElementById('endOverlay');
+  const againEnd = document.getElementById('againEnd');
+  const closeEnd = document.getElementById('closeEnd');
 
-  // ---------- bulletproof sizing (desktop + phone) ----------
-  function sizeBoard(){
-    // Measure vertical space *outside* the board we must reserve
-    const above = titleEl.offsetHeight + 8 + barEl.offsetHeight + 10 + 32; // 32px safety
-    const below = 12 + noteEl.offsetHeight + 10;
+  const END_ROUND = 5;
+  // Logical square coords: 1000x1000 viewBox
+  const CX = 500, CY = 500;
 
-    // Use small viewport height (svh) when supported to avoid iOS URL bar jumps
-    const svh = Math.min(window.innerHeight || 0, (window.visualViewport?.height || window.innerHeight || 0));
-    const availH = Math.max(280, svh - (above + below));
+  // ---------- state ----------
+  let running = false;
+  let round = 1;
+  let ringR = 420;        // main ring radius (in viewBox units)
+  let stitches = [];      // {id,angle,kind,clicked}
+  let hoverId = null;
+  let isPointerDown = false;
+  let lastPointerType = 'mouse';
+  let lastAutoId = null, lastAutoAt = 0;
 
-    const widthFromHeight = availH * RATIO;            // width that fits vertically
-    const widthFromViewport = window.innerWidth * 0.90; // keep some side breathing room
-    const widthFromWrap = wrapEl.clientWidth;           // don’t overflow container
-
-    const boardW = Math.min(780, widthFromHeight, widthFromViewport, widthFromWrap);
-    svg.style.width = boardW + 'px';
+  // ---------- utils ----------
+  function getCss(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  const toRad = d => (d*Math.PI)/180;
+  const dist2 = (x1,y1,x2,y2) => (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2);
+  function pointOnRingDeg(deg, r=ringR){
+    const a=toRad(deg); return {x:CX + r*Math.cos(a), y:CY + r*Math.sin(a)};
   }
-  ['load','resize','orientationchange'].forEach(ev => window.addEventListener(ev, ()=>{ sizeBoard(); }, {passive:true}));
-  setTimeout(sizeBoard, 120); // catch font/layout shifts
-
-  // ---------- game state ----------
-  let running=false, round=1, stitches=[], ringR=160;
-  let hoverId=null, pointerPos=null;
-  let isPointerDown=false, dwellTimer=null, lastDownHover=null;
-
-  const counts=[0,12,18,24,30,36];
-  const toRad=d=>d*Math.PI/180;
-  const pointOnRingDeg=(deg,r=ringR)=>({x:cx+r*Math.cos(toRad(deg)), y:cy+r*Math.sin(toRad(deg))});
-  const dist2=(x1,y1,x2,y2)=> (x1-x2)**2+(y1-y2)**2;
-  const radiusForRound=r=>130+r*8;
-
   function stitchPath(kind){
-    let W=44,H=56;
+    let W=44, H=56; // base V
     if(kind==='too_wide') W*=1.3;
     if(kind==='too_shallow') H*=0.75;
     const bl={x:0,y:0}, tl={x:-W/2,y:-H}, tr={x:W/2,y:-H};
     return `M ${bl.x} ${bl.y} L ${tl.x} ${tl.y} M ${bl.x} ${bl.y} L ${tr.x} ${tr.y}`;
   }
+  function countForRound(r){ return [0,12,18,24,30,36][r] ?? 36; }
+  function radiusForRound(r){ return 330 + r*18; } // tuned for 1000 viewBox
 
+  function clearSvg(){ while(svg.firstChild) svg.removeChild(svg.firstChild); }
+
+  // ---------- drawing ----------
+  function drawFrame(){
+    clearSvg();
+    // rings
+    addEl('circle', {cx:CX,cy:CY,r:ringR+140,fill:'none',stroke:GOLD,'stroke-width':4});
+    addEl('circle', {cx:CX,cy:CY,r:ringR-150,fill:'none',stroke:'#e9ebef','stroke-dasharray':'5 14'});
+
+    // stitches
+    const ordered=[...stitches].sort((a,b)=>a.angle-b.angle);
+    for(const s of ordered){
+      const base = pointOnRingDeg(s.angle);
+      const inwardDeg = s.angle+180;
+      const rot = (s.kind==='wrong_orient')? s.angle+90 : inwardDeg;
+
+      const isHover = (hoverId===s.id && !s.clicked);
+      const stroke = s.clicked? (s.kind==='real'? GOLD : '#F8BBD0') : (isHover? PINK : BLACK);
+      const sw = isHover? 8 : 6;
+
+      const g = addEl('g', {transform:`translate(${base.x},${base.y}) rotate(${rot})`, 'data-id':s.id});
+      const p = addEl('path', {d:stitchPath(s.kind), fill:'none', stroke, 'stroke-width':sw, 'stroke-linecap':'round'});
+      if(isHover) p.style.filter = `drop-shadow(0 0 8px ${GOLD})`;
+    }
+
+    // hook (on top)
+    if(currentPointer){
+      const imgW = 140, imgH = 140;
+      addEl('image',{
+        href:'https://athriftynotion.com/cdn/shop/files/SizeNCrochetHook_800x.png?v=1753294266',
+        x: currentPointer.x - imgW*0.4,
+        y: currentPointer.y - imgH*0.4,
+        width: imgW, height: imgH, 'pointer-events':'none'
+      });
+    }
+  }
+
+  function addEl(tag, attrs){
+    const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for(const k in attrs) el.setAttribute(k, attrs[k]);
+    svg.appendChild(el); return el;
+  }
+
+  // ---------- round/stitches ----------
   function genRound(r){
-    const c=counts[r]||36;
-    ringR = radiusForRound(r);
-    stitches = Array.from({length:c},(_,i)=>{
-      const a=(360/c)*i - 90 + 5;
-      const rr=Math.random();
-      const kind = rr<0.72?'real' : rr<0.84?'wrong_orient' : rr<0.93?'too_wide':'too_shallow';
-      return {id:i, angle:a, kind, clicked:false};
+    const c = countForRound(r);
+    const arr = Array.from({length:c}, (_,i)=>{
+      const baseAngle = (360/c)*i - 90 + 5;
+      const rr = Math.random();
+      const kind = rr<0.72 ? 'real' : rr<0.84 ? 'wrong_orient' : rr<0.93 ? 'too_wide' : 'too_shallow';
+      return {id:i, angle:baseAngle, kind, clicked:false};
     });
-    roundEl.textContent=r;
-    tagEl.textContent=`Round ${r}`;
-    countEl.textContent=c;
-    draw();
+    stitches = arr;
+    ringR = radiusForRound(r);
+    roundTag.textContent = `Round ${round}`;
+    roundNowEl.textContent = String(round);
+    stCountEl.textContent = String(c);
+    drawFrame();
   }
 
   function start(){
-    round=1; running=true; hoverId=null; pointerPos=null;
-    startBtn.style.display='none'; pauseBtn.style.display='inline-block';
-    startBtn.textContent='Start';
-    genRound(1);
+    running = true;
+    startBtn.style.display='none';
+    pauseBtn.style.display='inline-block';
+    round = 1; genRound(round);
+    endOverlay.classList.remove('show');
+    currentPointer = null; hoverId=null;
   }
   function pause(){
-    running=false;
+    running = false;
     startBtn.textContent='Resume';
     startBtn.style.display='inline-block';
     pauseBtn.style.display='none';
   }
 
-  function circle(x,y,r,fill,stroke,sw){
-    const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
-    c.setAttribute('cx',x); c.setAttribute('cy',y); c.setAttribute('r',r);
-    c.setAttribute('fill',fill); c.setAttribute('stroke',stroke); c.setAttribute('stroke-width',sw);
-    return c;
-  }
-
-  function sparkle(x,y){
-    const rays=8, radius=18;
-    const g = document.createElementNS('http://www.w3.org/2000/svg','g'); g.setAttribute('class','spark');
-    for(let i=0;i<rays;i++){
-      const a = i*2*Math.PI/rays, x2=x+radius*Math.cos(a), y2=y+radius*Math.sin(a);
-      const ln=document.createElementNS('http://www.w3.org/2000/svg','line');
-      ln.setAttribute('x1',x); ln.setAttribute('y1',y); ln.setAttribute('x2',x2); ln.setAttribute('y2',y2);
-      ln.setAttribute('stroke',GOLD); ln.setAttribute('stroke-width',2);
-      ln.style.animationDelay=(0.03*i)+'s'; g.appendChild(ln);
-    }
-    const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
-    dot.setAttribute('cx',x); dot.setAttribute('cy',y); dot.setAttribute('r',4); dot.setAttribute('fill',GOLD); g.appendChild(dot);
-    svg.appendChild(g); setTimeout(()=>g.remove(),700);
-  }
-
-  function remainingReal(){ return stitches.filter(s=>s.kind==='real' && !s.clicked).length; }
-  function checkEnd(){
-    if(!running) return;
-    if(stitches.length>0 && remainingReal()===0){
-      if(round>=END_ROUND){
-        running=false; startBtn.textContent='Start'; startBtn.style.display='inline-block'; pauseBtn.style.display='none';
-        overlay.classList.add('show');
-      } else { round++; genRound(round); }
-    }
+  function remainingReal(){
+    return stitches.filter(s=>s.kind==='real' && !s.clicked).length;
   }
 
   function selectStitch(s){
     if(!running || !s || s.clicked) return;
-    s.clicked=true;
-    if(s.kind==='real'){ const b=pointOnRingDeg(s.angle, ringR); sparkle(b.x, b.y-18); }
-    draw(); checkEnd();
-  }
-
-  function draw(){
-    while(svg.firstChild) svg.firstChild.remove();
-    svg.appendChild(circle(cx,cy, ringR+70,'none',GOLD,2));
-    const inner=circle(cx,cy, ringR-70,'none','#f3f4f6',2); inner.setAttribute('stroke-dasharray','3 8'); svg.appendChild(inner);
-
-    const ordered=[...stitches].sort((a,b)=>a.angle-b.angle);
-    for(const s of ordered){
-      const base=pointOnRingDeg(s.angle, ringR);
-      const inwardDeg=s.angle+180;
-      const rotDeg=(s.kind==='wrong_orient')? s.angle+90 : inwardDeg;
-      const d=stitchPath(s.kind);
-      const isHover=(hoverId===s.id) && !s.clicked;
-      const strokeColor = s.clicked ? (s.kind==='real'?GOLD:'#F8BBD0') : isHover?PINK:BLACK;
-      const strokeW = isHover ? 5.5 : 4;
-
-      const g=document.createElementNS('http://www.w3.org/2000/svg','g'); g.style.cursor='pointer';
-      const path=document.createElementNS('http://www.w3.org/2000/svg','path');
-      path.setAttribute('d',d);
-      path.setAttribute('transform',`translate(${base.x},${base.y}) rotate(${rotDeg})`);
-      path.setAttribute('fill','none'); path.setAttribute('stroke',strokeColor);
-      path.setAttribute('stroke-width',strokeW); path.setAttribute('stroke-linecap','round');
-      if(isHover) path.style.filter=`drop-shadow(0 0 6px ${GOLD})`;
-      g.addEventListener('click',()=>selectStitch(s));  // desktop click
-      svg.appendChild(g); g.appendChild(path);
-    }
-
-    if(pointerPos){
-      const img=document.createElementNS('http://www.w3.org/2000/svg','image');
-      img.setAttributeNS('http://www.w3.org/1999/xlink','href','https://athriftynotion.com/cdn/shop/files/SizeNCrochetHook_800x.png?v=1753294266');
-      const hookW = (window.innerWidth<420)? 110:100;
-      img.setAttribute('x',pointerPos.x-40); img.setAttribute('y',pointerPos.y-40);
-      img.setAttribute('width',hookW); img.setAttribute('height',hookW);
-      img.setAttribute('pointer-events','none'); svg.appendChild(img);
+    s.clicked = true;
+    sparkleAt(s);
+    drawFrame();
+    if(remainingReal()===0){
+      if(round>=END_ROUND){
+        running=false;
+        pauseBtn.style.display='none';
+        startBtn.textContent='Play again';
+        startBtn.style.display='inline-block';
+        endOverlay.classList.add('show');
+      }else{
+        round++;
+        genRound(round);
+      }
     }
   }
 
-  // ---------- pointer logic (hover + select) ----------
-  const svgPointFromEvent=(ev)=>{
-    const rect=svg.getBoundingClientRect();
-    const vb=svg.viewBox.baseVal;
-    const scaleX = vb.width/rect.width;
-    const scaleY = vb.height/rect.height;
-    return { x:(ev.clientX-rect.left)*scaleX, y:(ev.clientY-rect.top)*scaleY };
-  };
-  const nearestStitch=(mx,my,snapPx)=>{
-    const snap2=snapPx*snapPx;
+  function sparkleAt(s){
+    const base = pointOnRingDeg(s.angle);
+    const g = addEl('g', {'class':'spark'});
+    const rays = 8, R = 28;
+    for(let i=0;i<rays;i++){
+      const a = i*2*Math.PI/rays;
+      const x2= base.x + R*Math.cos(a), y2= base.y + R*Math.sin(a);
+      const ln = addEl('line',{x1:base.x,y1:base.y,x2,y2});
+      ln.style.animationDelay = (i*0.02)+'s';
+    }
+    // remove after a bit
+    setTimeout(()=>{ if(g && g.parentNode) g.parentNode.removeChild(g); }, 600);
+  }
+
+  // ---------- pointer + hit test ----------
+  let currentPointer = null;   // SVG-space coords
+  function svgPointFromEvent(ev){
+    const pt = svg.createSVGPoint();
+    pt.x = ev.clientX; pt.y = ev.clientY;
+    const m = svg.getScreenCTM().inverse();
+    const r = pt.matrixTransform(m);
+    return {x:r.x, y:r.y};
+  }
+
+  function nearestStitch(mx,my, snap=58){
+    const snap2 = snap*snap;
     let best=null, bestD2=Infinity;
     for(const s of stitches){
-      const b=pointOnRingDeg(s.angle, ringR);
-      const d2=dist2(mx,my,b.x,b.y);
+      const b = pointOnRingDeg(s.angle);
+      const d2 = dist2(mx,my,b.x,b.y);
       if(d2<bestD2){ bestD2=d2; best=s; }
     }
-    return {best, bestD2, within: bestD2<=snap2};
-  };
+    return {best, within: bestD2<snap2};
+  }
+
   function updateHover(mx,my){
-    pointerPos={x:mx,y:my};
-    const snap = (window.innerWidth<480)? 58 : 38;
-    const {best, within} = nearestStitch(mx,my,snap);
-    hoverId = within && best ? best.id : (best ? best.id : null);
-    draw();
-  }
-  function selectAtScreenEvent(ev) {
-    if (!running) return;
-    if (hoverId != null) {
-      const s1 = stitches.find(st => st.id === hoverId);
-      if (s1) { selectStitch(s1); return; }
-    }
-    const p = svgPointFromEvent(ev);
-    const generous = (window.innerWidth < 480) ? 85 : 50;
-    const { best } = nearestStitch(p.x, p.y, generous);
-    if (best) { selectStitch(best); return; }
-    if (pointerPos) {
-      const { best: best2 } = nearestStitch(pointerPos.x, pointerPos.y, generous);
-      if (best2) selectStitch(best2);
-    }
+    const {best, within} = nearestStitch(mx,my, 58);
+    hoverId = (within && best && !best.clicked) ? best.id : null;
+    currentPointer = {x:mx,y:my};
+    drawFrame();
   }
 
-  // dwell-to-select for phones
-  function startDwell(){
-    clearTimeout(dwellTimer);
-    lastDownHover = hoverId;
-    dwellTimer = setTimeout(()=>{
-      if (isPointerDown && running) {
-        const s = (lastDownHover!=null) ? stitches.find(st=>st.id===lastDownHover) : null;
-        if (s && !s.clicked) selectStitch(s);
+  function maybeAutoSelectOnTouch(mx,my){
+    if(!running) return;
+    // Larger snap on small screens; feels magnetic
+    const snap = (window.innerWidth < 480) ? 76 : 66;
+    const {best, within} = nearestStitch(mx,my, snap);
+    const now = Date.now();
+    if(within && best && !best.clicked){
+      if(best.id !== lastAutoId || (now-lastAutoAt)>80){
+        selectStitch(best);
+        lastAutoId = best.id; lastAutoAt = now;
       }
-    }, 170);
+    }
   }
-  function cancelDwell(){ clearTimeout(dwellTimer); dwellTimer=null; }
 
+  function selectAtScreenEvent(ev){
+    const p = svgPointFromEvent(ev);
+    const {best, within} = nearestStitch(p.x,p.y, 58);
+    if(within && best) selectStitch(best);
+  }
+
+  // pointer handlers (mouse + touch unified)
   svg.addEventListener('pointerdown',(ev)=>{
     if(ev.isPrimary===false) return;
-    isPointerDown=true;
-    try { svg.setPointerCapture(ev.pointerId); } catch(_) {}
-    const p=svgPointFromEvent(ev);
+    lastPointerType = ev.pointerType || 'mouse';
+    isPointerDown = true;
+    try{ svg.setPointerCapture(ev.pointerId); }catch(_){}
+    const p = svgPointFromEvent(ev);
     updateHover(p.x,p.y);
-    startDwell();
+    if(lastPointerType==='touch'){ maybeAutoSelectOnTouch(p.x,p.y); }
     ev.preventDefault();
   },{passive:false});
 
   svg.addEventListener('pointermove',(ev)=>{
     if(ev.isPrimary===false) return;
-    const p=svgPointFromEvent(ev);
+    lastPointerType = ev.pointerType || lastPointerType;
+    const p = svgPointFromEvent(ev);
     updateHover(p.x,p.y);
-    if(isPointerDown) startDwell();
-    if(isPointerDown) ev.preventDefault();
+    if(isPointerDown && lastPointerType==='touch'){
+      // Auto-select continuously while sliding
+      maybeAutoSelectOnTouch(p.x,p.y);
+      ev.preventDefault();
+    }
   },{passive:false});
 
   svg.addEventListener('pointerup',(ev)=>{
     if(ev.isPrimary===false) return;
-    isPointerDown=false;
-    cancelDwell();
-    try { svg.releasePointerCapture(ev.pointerId); } catch(_) {}
-    selectAtScreenEvent(ev);
+    isPointerDown = false;
+    try{ svg.releasePointerCapture(ev.pointerId); }catch(_){}
+    if(lastPointerType!=='touch'){ selectAtScreenEvent(ev); }
     ev.preventDefault();
   },{passive:false});
 
   svg.addEventListener('pointerleave',()=>{
-    pointerPos=null; hoverId=null; cancelDwell(); draw();
+    isPointerDown=false; hoverId=null; currentPointer=null; drawFrame();
   });
 
-  // extra fallbacks
-  svg.addEventListener('click', (ev) => { selectAtScreenEvent(ev); });
-  window.addEventListener('pointerup', (ev) => { selectAtScreenEvent(ev); }, { passive:false });
-  document.addEventListener('pointerup', (ev) => { selectAtScreenEvent(ev); }, { passive:false });
+  // ---------- buttons ----------
+  startBtn.addEventListener('click', ()=>{
+    if(!running && round>1 && remainingReal()>0){
+      // resume
+      running=true;
+      startBtn.style.display='none';
+      pauseBtn.style.display='inline-block';
+      return;
+    }
+    start();
+  });
+  pauseBtn.addEventListener('click', pause);
+  againEnd.addEventListener('click', ()=>{ endOverlay.classList.remove('show'); start(); });
+  closeEnd.addEventListener('click', ()=>{ endOverlay.classList.remove('show'); });
 
-  // UI
-  startBtn.addEventListener('click',()=>{ if(!running) start(); });
-  pauseBtn.addEventListener('click',()=>pause());
-  closeBtn.addEventListener('click',()=>overlay.classList.remove('show'));
-  againBtn.addEventListener('click',()=>{ overlay.classList.remove('show'); start(); });
+  // ---------- init ----------
+  // render an idle board so nothing is cut off before Start
+  genRound(1); running=false; startBtn.style.display='inline-block'; pauseBtn.style.display='none';
 
-  // initial layout + placeholder (no stitches until Start)
-  sizeBoard();
-  // draw empty board once so you can see the full square before starting
-  (function drawEmpty(){
-    while(svg.firstChild) svg.firstChild.remove();
-    svg.appendChild(circle(cx,cy, 230,'none',GOLD,2));
-    const inner=circle(cx,cy, 70,'none','#f3f4f6',2); inner.setAttribute('stroke-dasharray','3 8'); svg.appendChild(inner);
-  })();
 })();
 </script>
 </body>
